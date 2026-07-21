@@ -1,0 +1,8 @@
+name: Commerce StablePay
+type: module
+description: StablePay crypto payment gateway (StableChain + Celo).
+core_version_requirement: ^10 || ^11
+package: Commerce (contrib)
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_payment

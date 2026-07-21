@@ -1,0 +1,42 @@
+commerce_stablepay.payment_page:
+  path: '/stablepay/payment/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::build'
+    _title: 'StablePay Crypto Payment'
+  requirements:
+    _permission: 'access checkout'
+    _custom_access: '\Drupal\commerce_stablepay\Controller\PaymentPageController::access'
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_stablepay.status:
+  path: '/stablepay/payment/status/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::status'
+    _title: 'Payment Status'
+  requirements:
+    _permission: 'access checkout'
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_stablepay.config:
+  path: '/stablepay/payment/config'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::gatewayConfig'
+  requirements:
+    _access: 'TRUE'
+
+commerce_stablepay.derive:
+  path: '/stablepay/payment/derive-address/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::deriveAddress'
+  requirements:
+    _permission: 'access checkout'
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order

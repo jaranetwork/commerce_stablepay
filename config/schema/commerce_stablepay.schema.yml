@@ -1,0 +1,39 @@
+commerce_payment.commerce_payment_gateway.plugin.stablepay_offsite:
+  type: commerce_payment_gateway_configuration
+  mapping:
+    mode:
+      type: string
+      label: 'Mode (test/live)'
+    stablechain_rpc:
+      type: string
+      label: 'StableChain RPC URL'
+    celo_rpc:
+      type: string
+      label: 'Celo RPC URL'
+    stablechain_usdc:
+      type: string
+      label: 'StableChain USDC contract address'
+    celo_usdc:
+      type: string
+      label: 'Celo USDC contract address'
+    celo_usdt:
+      type: string
+      label: 'Celo USDT contract address'
+    confirmation_blocks:
+      type: integer
+      label: 'Required confirmations'
+    expiration_minutes:
+      type: integer
+      label: 'Payment expiration in minutes'
+    sweep_address:
+      type: string
+      label: 'Sweep address (master wallet)'
+    test_rpc_url:
+      type: string
+      label: 'Test RPC URL'
+    test_token_symbol:
+      type: string
+      label: 'Test token symbol'
+    test_token_address:
+      type: string
+      label: 'Test token contract address'

@@ -1,0 +1,18 @@
+<?php
+
+function commerce_stablepay_theme($existing, $type, $theme, $path) {
+  return [
+    'stablepay_payment_page' => [
+      'variables' => [
+        'order_id' => NULL,
+        'amount' => '0.00',
+        'currency' => 'USD',
+        'networks' => '[]',
+        'status_url' => '',
+        'notify_url' => '',
+        'return_url' => '',
+      ],
+      'template' => 'stablepay-payment-page',
+    ],
+  ];
+}

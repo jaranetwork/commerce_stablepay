@@ -1,0 +1,9 @@
+checkout:
+  version: VERSION
+  js:
+    js/commerce_stablepay.checkout.js: {}
+  dependencies:
+    - core/jquery
+    - core/once
+    - core/drupal
+    - core/drupalSettings
