@@ -20,6 +20,30 @@ Gateway off-site para Drupal Commerce que permite pagos con USDC/USDT en StableC
    - Agregar nuevo gateway → "StablePay Crypto"
    - Configurar RPC URLs y direcciones de contratos USDC/USDT
 
+## Despliegue standalone (sin Docker)
+
+Si el sidecor corre como servicio systemd en el mismo server:
+
+1. Configurar la URL del sidecar en `settings.php`:
+   ```php
+   putenv('STABLEPAY_SIDECAR_URL=http://127.0.0.1:3002');
+   ```
+
+2. Configurar `.env` del sidecar (en la raíz de Drupal):
+   ```env
+   DRUPAL_BASE_URL=http://127.0.0.1
+   STABLEPAY_MASTER_XPUB=xpub...
+   STABLEPAY_DB_PATH=./pending.db
+   PORT=3002
+   ```
+
+3. Instalar el servicio systemd (ver `node/stablepay-listener.service`):
+   ```sh
+   cp node/stablepay-listener.service /etc/systemd/system/
+   systemctl daemon-reload
+   systemctl enable --now stablepay-listener
+   ```
+
 ## Configuración de XPUB
 
 El gateway usa **XPUB (watch-only)** para derivar direcciones. El sidecar deriva addresses desde el xpub sin tener acceso a la private key.
