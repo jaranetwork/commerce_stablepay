@@ -1,0 +1,15 @@
+[Unit]
+Description=StablePay Sidecar Listener
+After=apache2.service
+Requires=apache2.service
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/latina/web/modules/custom/commerce_stablepay/node
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
