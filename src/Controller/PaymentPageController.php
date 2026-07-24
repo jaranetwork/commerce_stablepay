@@ -133,7 +133,7 @@ class PaymentPageController extends ControllerBase {
         'name' => 'StableChain',
         'network' => 'stablechain',
         'tokenSymbol' => 'USDC',
-        'tokenAddress' => $plugin->getStablechainUsdc(),
+        'tokenAddress' => $plugin->getStablechainUsdt(),
         'rpcUrl' => $plugin->getStablechainRpc(),
         'chainId' => 988,
         'decimals' => 6,
@@ -453,12 +453,12 @@ class PaymentPageController extends ControllerBase {
     }
 
     if ($plugin->getMode() === 'live') {
-      if ($plugin->getStablechainRpc() && $plugin->getStablechainUsdc()) {
+      if ($plugin->getStablechainRpc() && $plugin->getStablechainUsdt()) {
         $networks[] = [
           'name' => 'StableChain',
           'network' => 'stablechain',
           'rpc_url' => $plugin->getStablechainRpc(),
-          'token_address' => $plugin->getStablechainUsdc(),
+          'token_address' => $plugin->getStablechainUsdt(),
           'token_symbol' => 'USDC',
           'chain_id' => 988,
           'decimals' => 6,

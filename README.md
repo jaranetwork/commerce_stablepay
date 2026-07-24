@@ -43,7 +43,7 @@ STABLEPAY_MASTER_XPUB=xpub6DyUKdwoLWmUJ4Tn9Bbsdtx7B5Ws18mEN19e5HT52ikE53FiUheSQX
 
 | Network | Chain ID | Gas Token | Tokens |
 |---|---|---|---|
-| StableChain | `988` | USDT (CIP-64) | USDT |
+| StableChain | `988` | USDT | USDT |
 | Celo | `42220` | CELO (CIP-64) | USDC, USDT |
 
 ### Direcciones de contratos

@@ -37,8 +37,8 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
     return $this->configuration['celo_rpc'] ?? '';
   }
 
-  public function getStablechainUsdc() {
-    return $this->configuration['stablechain_usdc'] ?? '';
+  public function getStablechainUsdt() {
+    return $this->configuration['stablechain_usdt'] ?? '';
   }
 
   public function getCeloUsdc() {
@@ -80,11 +80,11 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
   public function defaultConfiguration() {
     return [
       'mode' => 'test',
-      'stablechain_rpc' => 'https://rpc.stablechain.com',
-      'celo_rpc' => 'https://rpc.celo.org',
-      'stablechain_usdc' => '',
+      'stablechain_rpc' => 'https://rpc.stable.xyz',
+      'celo_rpc' => 'https://celo.drpc.org',
+      'stablechain_usdt' => '0x779Ded0c9e1022225f8E0630b35a9b54bE713736',
       'celo_usdc' => '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
-      'celo_usdt' => '',
+      'celo_usdt' => '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e',
       'confirmation_blocks' => 1,
       'expiration_minutes' => 30,
       'sweep_address' => '',
@@ -127,10 +127,10 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       '#default_value' => $this->configuration['celo_rpc'],
     ];
 
-    $form['stablechain_usdc'] = [
+    $form['stablechain_usdt'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('StableChain USDC Contract'),
-      '#default_value' => $this->configuration['stablechain_usdc'],
+      '#title' => $this->t('StableChain USDT Contract'),
+      '#default_value' => $this->configuration['stablechain_usdt'],
     ];
 
     $form['celo_usdc'] = [
@@ -199,7 +199,7 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       $this->configuration['mode'] = $values['mode'];
       $this->configuration['stablechain_rpc'] = $values['stablechain_rpc'];
       $this->configuration['celo_rpc'] = $values['celo_rpc'];
-      $this->configuration['stablechain_usdc'] = $values['stablechain_usdc'];
+      $this->configuration['stablechain_usdt'] = $values['stablechain_usdt'];
       $this->configuration['celo_usdc'] = $values['celo_usdc'];
       $this->configuration['celo_usdt'] = $values['celo_usdt'];
       $this->configuration['confirmation_blocks'] = $values['confirmation_blocks'];

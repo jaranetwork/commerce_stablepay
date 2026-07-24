@@ -10,9 +10,9 @@ commerce_payment.commerce_payment_gateway.plugin.stablepay_offsite:
     celo_rpc:
       type: string
       label: 'Celo RPC URL'
-    stablechain_usdc:
+    stablechain_usdt:
       type: string
-      label: 'StableChain USDC contract address'
+      label: 'StableChain USDT contract address'
     celo_usdc:
       type: string
       label: 'Celo USDC contract address'

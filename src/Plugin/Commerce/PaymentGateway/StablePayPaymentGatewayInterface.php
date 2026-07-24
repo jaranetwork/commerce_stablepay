@@ -10,7 +10,7 @@ interface StablePayPaymentGatewayInterface {
 
   public function getCeloRpc();
 
-  public function getStablechainUsdc();
+  public function getStablechainUsdt();
 
   public function getCeloUsdc();
 
