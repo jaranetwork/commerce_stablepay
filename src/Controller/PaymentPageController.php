@@ -8,6 +8,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -47,6 +48,9 @@ class PaymentPageController extends ControllerBase {
 
     $valid_states = ['draft', 'checkout'];
     if (!in_array($state, $valid_states)) {
+      if ($state === 'canceled') {
+        return new RedirectResponse('/cart');
+      }
       return $this->redirect('commerce_checkout.form', [
         'commerce_order' => $commerce_order->id(),
         'step' => 'complete',
@@ -201,6 +205,7 @@ class PaymentPageController extends ControllerBase {
           'stablepay' => [
             'address' => $address,
             'expires_at' => $expires_at,
+            'cancel_on_expire' => !empty($plugin->getConfiguration()['cancel_on_expire']),
           ],
         ],
       ],

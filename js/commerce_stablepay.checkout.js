@@ -13,6 +13,7 @@
         var notifyUrl = data.notifyUrl;
         var returnUrl = data.returnUrl;
         var initialBalance = JSON.parse(data.onchainBalance || 'null');
+        var cancelOnExpire = drupalSettings.stablepay && drupalSettings.stablepay.cancel_on_expire;
 
         if (networks.length === 0) {
           container.innerHTML = '<p style="color: var(--danger); text-align: center;">No payment networks configured.</p>';
@@ -177,6 +178,9 @@
           if (state.status === 'expired') {
             html += '<div style="padding: 1rem; border-radius: 8px; background: #dc2626; color: #fff;">';
             html += '<div style="font-weight: 600;">Payment expired</div></div>';
+            if (state.canceled) {
+              html += '<a href="/cart" style="display: block; margin-top: 1rem; padding: 0.75rem; text-align: center; background: #374151; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600;">Volver al carrito</a>';
+            }
           }
 
           return html;
@@ -324,8 +328,17 @@
               success: function (resp) {
                 if (resp.onchain_balance) {
                   state.amountReceived = parseFloat(resp.onchain_balance.balance) || 0;
-                  state.status = 'pending';
+                  if (state.status !== 'expired' && state.status !== 'confirmed') {
+                    state.status = 'pending';
+                  }
                   render();
+                }
+                if (resp.order_state === 'canceled') {
+                  state.status = 'expired';
+                  state.canceled = true;
+                  render();
+                  if (pollInterval) clearInterval(pollInterval);
+                  return;
                 }
                 if (resp.order_state !== 'draft' && resp.order_state !== 'checkout') {
                   state.status = 'confirmed';
@@ -359,9 +372,9 @@
             if (remaining <= 0) {
               state.timer = 'Expired';
               state.status = 'expired';
+              if (cancelOnExpire) state.canceled = true;
               render();
               if (timerInterval) clearInterval(timerInterval);
-              if (pollInterval) clearInterval(pollInterval);
               return;
             }
             var min = Math.floor(remaining / 60000);

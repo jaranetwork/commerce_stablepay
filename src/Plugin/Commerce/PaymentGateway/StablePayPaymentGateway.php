@@ -13,13 +13,14 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 #[CommercePaymentGateway(
   id: "stablepay_offsite",
   label: new TranslatableMarkup("StablePay"),
   display_label: new TranslatableMarkup("StablePay Crypto"),
-  payment_type: "payment_default",
+  payment_type: "payment_manual",
   requires_billing_information: FALSE,
 )]
 class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNotificationsInterface {
@@ -92,6 +93,7 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       'test_token_symbol' => 'USDC',
       'test_token_address' => '',
       'fiat_currency' => 'PYG',
+      'cancel_on_expire' => FALSE,
     ] + parent::defaultConfiguration();
   }
 
@@ -158,7 +160,14 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       '#title' => $this->t('Expiration (minutes)'),
       '#default_value' => $this->configuration['expiration_minutes'],
       '#required' => TRUE,
-      '#min' => 5,
+      '#min' => 1,
+    ];
+
+    $form['cancel_on_expire'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Cancel order on payment expiration'),
+      '#default_value' => $this->configuration['cancel_on_expire'],
+      '#description' => $this->t('When enabled, the order will be automatically canceled when the crypto payment expires.'),
     ];
 
     $form['sweep_address'] = [
@@ -209,6 +218,7 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       $this->configuration['test_token_symbol'] = $values['test_token_symbol'];
       $this->configuration['test_token_address'] = $values['test_token_address'];
       $this->configuration['fiat_currency'] = $values['fiat_currency'];
+      $this->configuration['cancel_on_expire'] = !empty($values['cancel_on_expire']);
     }
   }
 
@@ -232,6 +242,48 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
     }
 
     $payload = json_decode($request->getContent(), TRUE);
+
+    // Handle expiration notification from sidecar
+    if (!empty($payload['order_id']) && ($payload['event'] ?? '') === 'expired') {
+      $order = Order::load($payload['order_id']);
+      if (!$order) {
+        $logger->warning('Expiration notify: order not found: ' . $payload['order_id']);
+        return new JsonResponse(['status' => 'not_found']);
+      }
+      $current_state = $order->get('state')->first()->getValue()['value'] ?? '';
+      if ($current_state !== 'draft') {
+        $logger->info('Expiration notify: order ' . $order->id() . ' already in state: ' . $current_state);
+        return new JsonResponse(['status' => 'ignored']);
+      }
+      if (!empty($this->configuration['cancel_on_expire'])) {
+        $state_item = $order->get('state')->first();
+        $transitions = $state_item->getTransitions();
+        if (isset($transitions['cancel'])) {
+          $state_item->applyTransition($transitions['cancel']);
+        }
+        if ($order->isLocked()) {
+          $order->unlock();
+        }
+        $order->save();
+        $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+        $payments = $payment_storage->loadByProperties([
+          'order_id' => $order->id(),
+          'state' => 'pending',
+        ]);
+        foreach ($payments as $payment) {
+          $ptransitions = $payment->getState()->getTransitions();
+          if (isset($ptransitions['void'])) {
+            $payment->getState()->applyTransition($ptransitions['void']);
+            $payment->save();
+          }
+        }
+        $logger->notice('Order ' . $order->id() . ' canceled: payment expired');
+        return new JsonResponse(['status' => 'canceled']);
+      }
+      $logger->info('Expiration notify: order ' . $order->id() . ' expired but cancel_on_expire is disabled');
+      return new JsonResponse(['status' => 'ignored']);
+    }
+
     if (!$payload || empty($payload['order_id']) || empty($payload['tx_hash'])) {
       throw new PaymentGatewayException('Invalid notification payload.');
     }

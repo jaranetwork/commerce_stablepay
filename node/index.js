@@ -58,6 +58,7 @@ let pollTimer = null;
 let running = false;
 let wsActive = false;
 let notifyUrl = '';
+const expirationTimers = new Map();
 let db = null;
 let networkConfig = [];
 
@@ -102,6 +103,7 @@ async function initDb() {
       expected_amount: row[5],
       expires_at: row[6],
     });
+    scheduleExpirationTimer(row[0], { order_id: row[1], expires_at: row[6] });
     restored++;
   }
   if (restored > 0 && !pollTimer) startPolling();
@@ -120,6 +122,36 @@ function deletePending(addr) {
   if (!db) return;
   db.run('DELETE FROM pending WHERE address = ?', [addr]);
   fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
+}
+
+function scheduleExpirationTimer(addr, info) {
+  if (!info.expires_at) return;
+  if (expirationTimers.has(addr)) return;
+  const delay = info.expires_at - Date.now();
+  if (delay <= 0) {
+    notifyExpired(info.order_id).then(() => {
+      addressNetworkMap.delete(addr);
+      addressOrderMap.delete(addr);
+      deletePending(addr);
+    });
+    return;
+  }
+  const timer = setTimeout(async () => {
+    expirationTimers.delete(addr);
+    console.log(`Payment expired: order=${info.order_id} addr=${addr} token=${info.token_symbol || 'token'}`);
+    await notifyExpired(info.order_id);
+    addressNetworkMap.delete(addr);
+    addressOrderMap.delete(addr);
+    deletePending(addr);
+  }, delay);
+  expirationTimers.set(addr, timer);
+}
+
+function cancelExpirationTimer(addr) {
+  if (expirationTimers.has(addr)) {
+    clearTimeout(expirationTimers.get(addr));
+    expirationTimers.delete(addr);
+  }
 }
 
 // --- HD Wallet ---
@@ -208,14 +240,6 @@ async function pollAllAddresses() {
 
   for (const [addr, info] of addressNetworkMap) {
     try {
-      if (info.expires_at && Date.now() > info.expires_at) {
-        console.log(`Payment expired: order=${info.order_id} addr=${addr} token=${info.token_symbol}`);
-        addressNetworkMap.delete(addr);
-        addressOrderMap.delete(addr);
-        deletePending(addr);
-        continue;
-      }
-
       const provider = new ethers.JsonRpcProvider(info.rpc_url, undefined, {
         batchMaxCount: 1,
         staticNetwork: true,
@@ -248,6 +272,7 @@ async function pollAllAddresses() {
         }]);
         const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
         await notifyDrupal(info.order_id, lastLog ? lastLog.transactionHash : '', humanAmount, info.token_symbol);
+        cancelExpirationTimer(addr);
         addressNetworkMap.delete(addr);
         addressOrderMap.delete(addr);
         deletePending(addr);
@@ -309,6 +334,40 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
     });
   } catch (err) {
     console.error(`Notify failed for order ${orderId}: ${err.message}`);
+  }
+}
+
+async function notifyExpired(orderId) {
+  if (!notifyUrl) return;
+  try {
+    const notifyPath = new URL(notifyUrl).pathname;
+    const body = JSON.stringify({ order_id: orderId, event: 'expired' });
+    await new Promise((resolve, reject) => {
+      const opts = {
+        hostname: _baseUrl.hostname,
+        port: drupalPort,
+        path: notifyPath,
+        method: 'POST',
+        rejectUnauthorized: false,
+        headers: {
+          'Host': DRUPAL_HOST,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          ...(WEBHOOK_SECRET ? { 'X-Webhook-Secret': WEBHOOK_SECRET } : {}),
+        },
+      };
+      const req = drupalClient.request(opts, (res) => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => resolve(res.statusCode));
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+    console.log(`Notified Drupal: order ${orderId} expired`);
+  } catch (err) {
+    console.error(`Notify expired failed for order ${orderId}: ${err.message}`);
   }
 }
 
@@ -374,6 +433,7 @@ app.post('/derive', (req, res) => {
       };
       addressNetworkMap.set(addr, info);
       savePending(addr, info);
+      scheduleExpirationTimer(addr, info);
       ensureNetworkSubscription(rpc_url, token_address);
     }
 
