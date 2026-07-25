@@ -42,6 +42,7 @@ const addressNetworkMap = new Map();
 const POLL_INTERVAL = 15 * 1000;
 let pollTimer = null;
 let running = false;
+let wsActive = false;
 let notifyUrl = '';
 let db = null;
 
@@ -88,7 +89,7 @@ async function initDb() {
     });
     restored++;
   }
-  if (restored > 0 && !pollTimer) startMonitor();
+  if (restored > 0 && !pollTimer) startPolling();
   const buf = Buffer.from(db.export());
   fs.writeFileSync(DB_PATH, buf);
 }
@@ -125,7 +126,11 @@ async function subscribeNetwork(net) {
     return;
   }
 
-  provider.websocket.addEventListener('close', () => {});
+  provider.websocket.addEventListener('close', () => {
+    console.warn(`WS disconnected on ${net.name}, falling back to polling`);
+    wsActive = false;
+    startPolling();
+  });
   provider.websocket.addEventListener('error', (err) => {
     console.error(`WS error on ${net.name}:`, (err.message || '').slice(0, 80));
   });
@@ -142,6 +147,8 @@ async function subscribeNetwork(net) {
     }
   });
 
+  wsActive = true;
+  stopPolling();
   subscriptions.push({ name: net.name, provider, contract });
 }
 
@@ -237,11 +244,25 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
   }
 }
 
-function startMonitor() {
+function startPolling() {
   if (pollTimer) return;
   running = true;
   pollTimer = setInterval(pollAllAddresses, POLL_INTERVAL);
-  console.log('Started polling-only monitor');
+  console.log('Started polling fallback');
+}
+
+function stopPolling() {
+  if (!pollTimer) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+  running = false;
+  console.log('Stopped polling (WebSocket active)');
+}
+
+function checkPollFallback() {
+  if (!wsActive && addressNetworkMap.size > 0) {
+    startPolling();
+  }
 }
 
 // --- HTTP API ---
@@ -272,7 +293,7 @@ app.post('/derive', (req, res) => {
       };
       addressNetworkMap.set(addr, info);
       savePending(addr, info);
-      if (!running) startMonitor();
+      checkPollFallback();
     }
 
     res.json({ address: child.address });
@@ -356,8 +377,9 @@ app.get('/get-tx/:orderId', async (req, res) => {
 app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
-    monitor: running,
     xpub: !!masterXpub,
+    ws: wsActive,
+    polling: !!pollTimer,
     subscriptions: subscriptions.length,
     addresses: addressOrderMap.size,
     networks: subscriptions.map(s => s.name),
@@ -422,7 +444,7 @@ async function start() {
       );
     }
 
-    if (!pollTimer) pollTimer = setInterval(pollAllAddresses, POLL_INTERVAL);
+    checkPollFallback();
   }
 
   app.listen(PORT, () => {
