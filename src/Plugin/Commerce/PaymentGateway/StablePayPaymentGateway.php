@@ -81,7 +81,7 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
     return [
       'mode' => 'test',
       'stablechain_rpc' => 'https://rpc.stable.xyz',
-      'celo_rpc' => 'https://celo.drpc.org',
+      'celo_rpc' => 'https://forno.celo.org',
       'stablechain_usdt' => '0x779Ded0c9e1022225f8E0630b35a9b54bE713736',
       'celo_usdc' => '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
       'celo_usdt' => '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e',
