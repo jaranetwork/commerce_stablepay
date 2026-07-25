@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
@@ -22,6 +23,10 @@ const DRUPAL_HOST = process.env.DRUPAL_HOST || 'store.localhost';
 const DB_PATH = process.env.STABLEPAY_DB_PATH || './pending.db';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 const masterXpub = process.env.STABLEPAY_MASTER_XPUB || '';
+
+const _baseUrl = new URL(DRUPAL_BASE_URL);
+const drupalClient = _baseUrl.protocol === 'https:' ? https : http;
+const drupalPort = _baseUrl.port || (_baseUrl.protocol === 'https:' ? 443 : 80);
 
 function deriveWallet(orderId) {
   if (!masterXpub) throw new Error('STABLEPAY_MASTER_XPUB not set');
@@ -212,7 +217,6 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
   if (!notifyUrl) return;
   try {
     const notifyPath = new URL(notifyUrl).pathname;
-    const { hostname, port } = new URL(DRUPAL_BASE_URL);
     const body = JSON.stringify({
       order_id: orderId,
       tx_hash: txHash,
@@ -221,9 +225,11 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
     });
     const status = await new Promise((resolve, reject) => {
       const opts = {
-        hostname, port: port || 80,
+        hostname: _baseUrl.hostname,
+        port: drupalPort,
         path: notifyPath,
         method: 'POST',
+        rejectUnauthorized: false,
         headers: {
           'Host': DRUPAL_HOST,
           'Content-Type': 'application/json',
@@ -231,7 +237,7 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
           ...(WEBHOOK_SECRET ? { 'X-Webhook-Secret': WEBHOOK_SECRET } : {}),
         },
       };
-      const req = http.request(opts, (res) => {
+      const req = drupalClient.request(opts, (res) => {
         let data = '';
         res.on('data', c => data += c);
         res.on('end', () => resolve(res.statusCode));
@@ -391,15 +397,16 @@ app.get('/health', (_req, res) => {
 
 async function fetchConfig() {
   try {
-    const { hostname, port, pathname } = new URL(DRUPAL_BASE_URL);
     const config = await new Promise((resolve, reject) => {
       const opts = {
-        hostname, port: port || 80,
+        hostname: _baseUrl.hostname,
+        port: drupalPort,
         path: '/stablepay/payment/config',
         method: 'GET',
+        rejectUnauthorized: false,
         headers: { 'Host': DRUPAL_HOST },
       };
-      const req = http.request(opts, (res) => {
+      const req = drupalClient.request(opts, (res) => {
         let body = '';
         res.on('data', c => body += c);
         res.on('end', () => {
