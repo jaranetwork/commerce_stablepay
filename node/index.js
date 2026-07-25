@@ -49,7 +49,7 @@ const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
 ];
 
-const subscriptions = [];
+const subscriptions = new Map();
 const addressOrderMap = new Map();
 const addressNetworkMap = new Map();
 const POLL_INTERVAL = 15 * 1000;
@@ -58,6 +58,7 @@ let running = false;
 let wsActive = false;
 let notifyUrl = '';
 let db = null;
+let networkConfig = [];
 
 function httpToWs(url) {
   const ws = url.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
@@ -131,6 +132,9 @@ function deriveAddress(orderId) {
 // --- Blockchain Monitor ---
 
 async function subscribeNetwork(net) {
+  const netKey = net.token_address.toLowerCase();
+  if (subscriptions.has(netKey)) return;
+
   const wsUrl = httpToWs(net.rpc_url);
   let provider;
   try {
@@ -141,7 +145,8 @@ async function subscribeNetwork(net) {
 
   provider.websocket.addEventListener('close', () => {
     console.warn(`WS disconnected on ${net.name}, falling back to polling`);
-    wsActive = false;
+    subscriptions.delete(netKey);
+    wsActive = subscriptions.size > 0;
     startPolling();
   });
   provider.websocket.addEventListener('error', (err) => {
@@ -172,11 +177,14 @@ async function subscribeNetwork(net) {
   wsActive = true;
   stopPolling();
   console.log(`WS connected on ${net.name} (${net.network})`);
-  subscriptions.push({ name: net.name, provider, contract });
+  subscriptions.set(netKey, { name: net.name, provider, contract });
 }
 
 async function pollAllAddresses() {
-  if (addressNetworkMap.size === 0) return;
+  if (addressNetworkMap.size === 0) {
+    stopPolling();
+    return;
+  }
 
   for (const [addr, info] of addressNetworkMap) {
     try {
@@ -283,6 +291,13 @@ function stopPolling() {
   console.log('Stopped polling (WebSocket active)');
 }
 
+function ensureNetworkSubscription(rpc_url, token_address) {
+  const net = networkConfig.find(n =>
+    n.rpc_url === rpc_url && n.token_address.toLowerCase() === token_address.toLowerCase()
+  );
+  if (net) subscribeNetwork(net).catch(() => {});
+}
+
 function checkPollFallback() {
   if (!wsActive && addressNetworkMap.size > 0) {
     startPolling();
@@ -317,7 +332,7 @@ app.post('/derive', (req, res) => {
       };
       addressNetworkMap.set(addr, info);
       savePending(addr, info);
-      checkPollFallback();
+      ensureNetworkSubscription(rpc_url, token_address);
     }
 
     res.json({ address: child.address });
@@ -404,9 +419,9 @@ app.get('/health', (_req, res) => {
     xpub: !!masterXpub,
     ws: wsActive,
     polling: !!pollTimer,
-    subscriptions: subscriptions.length,
+    subscriptions: subscriptions.size,
     addresses: addressOrderMap.size,
-    networks: subscriptions.map(s => s.name),
+    networks: [...subscriptions.values()].map(s => s.name),
   });
 });
 
@@ -461,12 +476,11 @@ async function start() {
   }
   if (config) {
     notifyUrl = config.notify_url || notifyUrl;
+    networkConfig = config.networks || [];
     running = true;
 
-    for (const net of (config.networks || [])) {
-      await subscribeNetwork(net).catch(err =>
-        console.error(`Failed WS for ${net.name}: ${err.message}`)
-      );
+    for (const [addr, info] of addressNetworkMap) {
+      ensureNetworkSubscription(info.rpc_url, info.token_address);
     }
 
     checkPollFallback();
@@ -482,7 +496,7 @@ start().catch(err => console.error('Sidecar startup failed:', err.message));
 process.on('SIGTERM', () => {
   running = false;
   if (pollTimer) clearInterval(pollTimer);
-  for (const sub of subscriptions) {
+  for (const sub of subscriptions.values()) {
     try {
       if (sub.provider && sub.provider.websocket) sub.provider.websocket.close();
     } catch (_) {}
