@@ -20,6 +20,25 @@ Gateway off-site para Drupal Commerce que permite pagos con USDC/USDT en StableC
    - Agregar nuevo gateway → "StablePay Crypto"
    - Configurar RPC URLs y direcciones de contratos USDC/USDT
 
+3. Configurar webhook secret para asegurar que solo el sidecar puede notificar pagos:
+   ```sh
+   openssl rand -hex 32
+   ```
+   Agregar el resultado en ambas ubicaciones:
+
+   En `settings.php`:
+   ```php
+   putenv('STABLEPAY_WEBHOOK_SECRET=tu-secret-aqui');
+   ```
+
+   En el `.env` del sidecar (misma raíz de Drupal):
+   ```env
+   WEBHOOK_SECRET=tu-secret-aqui
+   ```
+
+   El sidecar envía este secret como header `X-Webhook-Secret` al notificar pagos.
+   El módulo lo verifica antes de procesar cualquier notificación.
+
 ## Despliegue standalone (sin Docker)
 
 Si el sidecor corre como servicio systemd en el mismo server:

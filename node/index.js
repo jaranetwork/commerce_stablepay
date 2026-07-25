@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 3001;
 const DRUPAL_BASE_URL = process.env.DRUPAL_BASE_URL || 'http://nginx';
 const DRUPAL_HOST = process.env.DRUPAL_HOST || 'store.localhost';
 const DB_PATH = process.env.STABLEPAY_DB_PATH || './pending.db';
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 const masterXpub = process.env.STABLEPAY_MASTER_XPUB || '';
 
 function deriveWallet(orderId) {
@@ -219,6 +220,7 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
           'Host': DRUPAL_HOST,
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(body),
+          ...(WEBHOOK_SECRET ? { 'X-Webhook-Secret': WEBHOOK_SECRET } : {}),
         },
       };
       const req = http.request(opts, (res) => {

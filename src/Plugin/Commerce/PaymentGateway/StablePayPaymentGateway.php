@@ -221,6 +221,16 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
   public function onNotify(Request $request) {
     $logger = \Drupal::logger('commerce_stablepay');
 
+    // Verify webhook secret — only accept from our sidecar.
+    $expected_secret = getenv('STABLEPAY_WEBHOOK_SECRET');
+    if ($expected_secret) {
+      $provided_secret = $request->headers->get('X-Webhook-Secret');
+      if ($provided_secret !== $expected_secret) {
+        $logger->warning('Rejected notify with invalid webhook secret');
+        return;
+      }
+    }
+
     $payload = json_decode($request->getContent(), TRUE);
     if (!$payload || empty($payload['order_id']) || empty($payload['tx_hash'])) {
       throw new PaymentGatewayException('Invalid notification payload.');
