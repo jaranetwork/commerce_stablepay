@@ -143,11 +143,26 @@ async function subscribeNetwork(net) {
     return;
   }
 
-  provider.websocket.addEventListener('close', () => {
-    console.warn(`WS disconnected on ${net.name}, falling back to polling`);
+  provider.websocket.addEventListener('close', (event) => {
+    console.warn(`WS disconnected on ${net.name}: code=${event.code} reason=${event.reason || 'none'}`);
     subscriptions.delete(netKey);
     wsActive = subscriptions.size > 0;
-    startPolling();
+
+    let retries = 0;
+    const maxRetries = 3;
+    const reconnect = () => {
+      if (retries >= maxRetries || addressNetworkMap.size === 0) {
+        console.warn(`WS reconnect failed on ${net.name} after ${retries} attempts, polling`);
+        startPolling();
+        return;
+      }
+      retries++;
+      console.log(`WS reconnecting to ${net.name} (attempt ${retries}/${maxRetries})...`);
+      setTimeout(() => subscribeNetwork(net).then(() => {
+        if (!subscriptions.has(netKey)) reconnect();
+      }).catch(() => reconnect()), 3000);
+    };
+    reconnect();
   });
   provider.websocket.addEventListener('error', (err) => {
     console.error(`WS error on ${net.name}:`, (err.message || '').slice(0, 80));
