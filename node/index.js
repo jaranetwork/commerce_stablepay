@@ -50,6 +50,7 @@ const ERC20_ABI = [
 ];
 
 const subscriptions = new Map();
+const reconnectRetries = new Map();
 const addressOrderMap = new Map();
 const addressNetworkMap = new Map();
 const POLL_INTERVAL = 15 * 1000;
@@ -148,18 +149,21 @@ async function subscribeNetwork(net) {
     subscriptions.delete(netKey);
     wsActive = subscriptions.size > 0;
 
-    let retries = 0;
     const maxRetries = 3;
+    let retries = reconnectRetries.get(netKey) || 0;
     const reconnect = () => {
       if (retries >= maxRetries || addressNetworkMap.size === 0) {
         console.warn(`WS reconnect failed on ${net.name} after ${retries} attempts, polling`);
+        reconnectRetries.delete(netKey);
         startPolling();
         return;
       }
       retries++;
+      reconnectRetries.set(netKey, retries);
       console.log(`WS reconnecting to ${net.name} (attempt ${retries}/${maxRetries})...`);
       setTimeout(() => subscribeNetwork(net).then(() => {
-        if (!subscriptions.has(netKey)) reconnect();
+        if (subscriptions.has(netKey)) reconnectRetries.delete(netKey);
+        else reconnect();
       }).catch(() => reconnect()), 3000);
     };
     reconnect();
