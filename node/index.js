@@ -202,12 +202,14 @@ async function subscribeNetwork(net) {
 async function pollAllAddresses() {
   if (addressNetworkMap.size === 0) {
     stopPolling();
+    cleanupSubscriptions();
     return;
   }
 
   for (const [addr, info] of addressNetworkMap) {
     try {
       if (info.expires_at && Date.now() > info.expires_at) {
+        console.log(`Payment expired: order=${info.order_id} addr=${addr} token=${info.token_symbol}`);
         addressNetworkMap.delete(addr);
         addressOrderMap.delete(addr);
         deletePending(addr);
@@ -254,6 +256,21 @@ async function pollAllAddresses() {
       console.error(`Poll error for ${addr}: ${err.message}`);
     }
   }
+
+  if (addressNetworkMap.size === 0) {
+    stopPolling();
+    cleanupSubscriptions();
+  }
+}
+
+function cleanupSubscriptions() {
+  if (subscriptions.size === 0) return;
+  console.log(`Cleaning up ${subscriptions.size} WS subscriptions (no active addresses)`);
+  for (const [key, sub] of subscriptions) {
+    try { sub.provider.websocket.close(); } catch {}
+  }
+  subscriptions.clear();
+  wsActive = false;
 }
 
 async function notifyDrupal(orderId, txHash, amount, currency) {
