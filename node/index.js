@@ -28,6 +28,14 @@ const _baseUrl = new URL(DRUPAL_BASE_URL);
 const drupalClient = _baseUrl.protocol === 'https:' ? https : http;
 const drupalPort = _baseUrl.port || (_baseUrl.protocol === 'https:' ? 443 : 80);
 
+process.on('unhandledRejection', (err) => {
+  if (err && err.code === 'UNKNOWN_ERROR' && err.error?.code === 35) {
+    console.warn('RPC subscription not supported on this provider, polling will be used');
+    return;
+  }
+  console.error('Unhandled rejection:', err);
+});
+
 function deriveWallet(orderId) {
   if (!masterXpub) throw new Error('STABLEPAY_MASTER_XPUB not set');
   const index = typeof orderId === 'number' ? orderId : parseInt(String(orderId).slice(-7), 16);
@@ -138,6 +146,15 @@ async function subscribeNetwork(net) {
   });
   provider.websocket.addEventListener('error', (err) => {
     console.error(`WS error on ${net.name}:`, (err.message || '').slice(0, 80));
+  });
+  provider.websocket.addEventListener('message', (msg) => {
+    try {
+      const data = JSON.parse(typeof msg.data === 'string' ? msg.data : msg.data.toString());
+      if (data.error) {
+        console.warn(`WS subscription rejected on ${net.name} (code ${data.error.code}), polling will be used`);
+        provider.websocket.close();
+      }
+    } catch {}
   });
 
   const contract = new ethers.Contract(net.token_address, ERC20_ABI, provider);
