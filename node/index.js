@@ -141,6 +141,7 @@ async function subscribeNetwork(net) {
   try {
     provider = new ethers.WebSocketProvider(wsUrl, undefined, { staticNetwork: true });
   } catch (err) {
+    console.warn(`WS connect failed on ${net.name} (${wsUrl}): ${err.message}`);
     return;
   }
 
@@ -313,7 +314,12 @@ function ensureNetworkSubscription(rpc_url, token_address) {
   const net = networkConfig.find(n =>
     n.rpc_url === rpc_url && n.token_address.toLowerCase() === token_address.toLowerCase()
   );
-  if (net) subscribeNetwork(net).catch(() => {});
+  if (net) {
+    console.log(`Ensuring WS subscription for ${net.name} (${token_address})`);
+    subscribeNetwork(net).catch(() => {});
+  } else {
+    console.warn(`No network config found for ${token_address} (rpc: ${rpc_url})`);
+  }
 }
 
 function checkPollFallback() {
@@ -328,6 +334,7 @@ app.post('/derive', (req, res) => {
   try {
     const { rpc_url, token_address, token_symbol, expected_amount, expiration_minutes } = req.body;
     const order_id = parseInt(req.body.order_id);
+    console.log(`POST /derive order=${order_id} rpc=${rpc_url || 'none'} token=${token_address || 'none'}`);
     if (isNaN(order_id)) {
       return res.status(400).json({ error: 'Invalid order_id' });
     }
