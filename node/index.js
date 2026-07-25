@@ -162,8 +162,7 @@ async function subscribeNetwork(net) {
       reconnectRetries.set(netKey, retries);
       console.log(`WS reconnecting to ${net.name} (attempt ${retries}/${maxRetries})...`);
       setTimeout(() => subscribeNetwork(net).then(() => {
-        if (subscriptions.has(netKey)) reconnectRetries.delete(netKey);
-        else reconnect();
+        if (!subscriptions.has(netKey)) reconnect();
       }).catch(() => reconnect()), 3000);
     };
     reconnect();
