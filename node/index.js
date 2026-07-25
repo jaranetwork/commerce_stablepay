@@ -149,6 +149,7 @@ async function subscribeNetwork(net) {
 
   wsActive = true;
   stopPolling();
+  console.log(`WS connected on ${net.name} (${net.network})`);
   subscriptions.push({ name: net.name, provider, contract });
 }
 
