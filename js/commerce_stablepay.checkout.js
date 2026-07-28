@@ -162,6 +162,10 @@
             html += '<div style="display: flex; gap: 0.5rem; padding: 0.75rem; background: var(--background, #f9fafb); border-radius: 8px; border: 1px solid var(--border, #e5e7eb); font-family: monospace; font-size: 0.75rem; word-break: break-all;">';
             html += '<span style="flex: 1;">' + escapeHtml(p.receivingAddress) + '</span>';
             html += '<button type="button" class="stablepay-btn-copy" style="background: none; border: none; cursor: pointer; color: var(--primary, #2563eb); font-size: 0.75rem; font-weight: 600; white-space: nowrap;">Copy</button></div></div>';
+
+            if (state.hasMetaMask) {
+              html += '<button type="button" class="stablepay-btn-metamask" style="display: block; width: 100%; padding: 0.75rem; margin-top: 0.75rem; background: #f6851b; color: #fff; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Pay with MetaMask</button>';
+            }
           }
 
           if (state.status === 'confirmed') {
@@ -258,6 +262,31 @@
               generateQR();
             });
           });
+
+          container.querySelectorAll('.stablepay-btn-metamask').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+              try {
+                var p = state.payment;
+                var accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                var from = accounts[0];
+                var decimals = p.decimals || 6;
+                var amount = BigInt(Math.round(p.amount * Math.pow(10, decimals)));
+                var toPadded = p.receivingAddress.slice(2).padStart(64, '0');
+                var amountPadded = amount.toString(16).padStart(64, '0');
+                var data = '0xa9059cbb' + toPadded + amountPadded;
+                var txHash = await window.ethereum.request({
+                  method: 'eth_sendTransaction',
+                  params: [{ from: from, to: p.tokenAddress, data: data }]
+                });
+                state.txHash = txHash;
+                state.status = 'pending';
+                render();
+              } catch (e) {
+                state.error = e.message;
+                render();
+              }
+            });
+          });
         }
 
         function createPayment(net) {
@@ -265,6 +294,7 @@
           state.payment = { orderId: orderId, amount: amount, tokenSymbol: net.tokenSymbol, tokenAddress: net.tokenAddress, rpcUrl: net.rpcUrl, network: net.network, decimals: net.decimals || 6, chainId: net.chainId || 1, requiredConfirmations: net.requiredConfirmations || 1, expirationMinutes: net.expirationMinutes || 30 };
           state.payment.receivingAddress = (container.dataset.address) || (drupalSettings.stablepay && drupalSettings.stablepay.address) || 'generating...';
           state.payment.expiresAt = new Date(Date.now() + (net.expirationMinutes || 30) * 60 * 1000).toISOString();
+          state.hasMetaMask = typeof window.ethereum !== 'undefined';
           render();
           generateQR();
           startPolling();
