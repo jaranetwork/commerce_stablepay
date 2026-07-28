@@ -143,7 +143,7 @@ Cuando el sidecar detecta un pago (WS o polling), hace un `POST` a `{notify_url}
 
 ## Sweep de fondos
 
-Los fondos se barran desde las addresses derivadas usando la CLI tool [`stablepay-sweep`](https://github.com/jaranetwork/stablepay-sweep) (submodule en `tools/stablepay-sweep/`). El sidecar NO tiene acceso a la private key.
+Los fondos se barran desde las addresses derivadas usando la CLI tool [`stablepay-sweep`](https://github.com/jaranetwork/stablepay-sweep). El sidecar NO tiene acceso a la private key.
 
 ```sh
 cd tools/stablepay-sweep
