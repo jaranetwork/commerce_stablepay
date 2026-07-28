@@ -112,6 +112,7 @@
           try {
           var p = state.payment;
           var netColor = p.network === 'celo' ? '#35d07f' : '#6366f1';
+          var netUrl = p.network === 'celo' ? 'https://celo.org/' : 'https://www.stable.xyz/';
           var isExpired = state.status === 'expired';
           var isConfirmed = state.status === 'confirmed';
 
@@ -127,7 +128,7 @@
             html += '<div><div style="font-size: 0.75rem; color: var(--text-muted, #999); margin-bottom: 0.25rem;">Amount</div>';
             html += '<div style="font-size: 1.5rem; font-weight: bold;">$' + p.amount.toFixed(2) + ' <span style="font-size: 1rem; color: var(--text-secondary, #666);">' + escapeHtml(p.tokenSymbol) + '</span></div></div>';
             html += '<div style="text-align: right;"><div style="font-size: 0.75rem; color: var(--text-muted, #999); margin-bottom: 0.25rem;">Network</div>';
-            html += '<span style="display: inline-block; padding: 0.25rem 0.6rem; border-radius: 999px; background: ' + netColor + '; color: #fff; font-weight: 700; font-size: 0.75rem; text-transform: capitalize;">' + escapeHtml(p.network) + '</span>';
+            html += '<a href="' + netUrl + '" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 0.25rem 0.6rem; border-radius: 999px; background: ' + netColor + '; color: #fff; font-weight: 700; font-size: 0.75rem; text-transform: capitalize; text-decoration: none;">' + escapeHtml(p.network) + '</a>';
             html += '<div style="font-size: 0.75rem; color: ' + (state.timer === 'Expired' ? '#dc2626' : 'var(--text-secondary, #666)') + '; margin-top: 0.35rem;">' + state.timer + '</div></div></div>';
 
             var statusBg = state.amountReceived > 0 ? '#ca8a04' : '#f0f0f0';
@@ -144,7 +145,7 @@
 
             html += '<div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center; margin-bottom: 0.75rem;">';
             html += '<span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: ' + netColor + '; color: #fff; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">' + escapeHtml(p.network) + '</span>';
-            html += '<span style="font-size: 0.75rem; color: var(--text-secondary, #666);">Send on ' + escapeHtml(p.network) + '</span></div>';
+            html += '<a href="' + netUrl + '" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: var(--text-secondary, #666); text-decoration: underline;">Send on ' + escapeHtml(p.network) + '</a></div>';
 
             html += '<div style="display: flex; gap: 0.25rem; justify-content: center; margin-bottom: 0.75rem;">';
             html += '<button type="button" class="stablepay-qr-mode" data-mode="address" style="padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid var(--border, #e5e7eb); background: ' + (state.qrMode === 'address' ? 'var(--primary, #2563eb)' : 'var(--background, #f9fafb)') + '; color: ' + (state.qrMode === 'address' ? '#fff' : 'var(--text-secondary, #666)') + '; cursor: pointer; font-size: 0.75rem; font-weight: 600;">Address</button>';
@@ -263,7 +264,7 @@
           state.error = null;
           state.payment = { orderId: orderId, amount: amount, tokenSymbol: net.tokenSymbol, tokenAddress: net.tokenAddress, rpcUrl: net.rpcUrl, network: net.network, decimals: net.decimals || 6, chainId: net.chainId || 1, requiredConfirmations: net.requiredConfirmations || 1, expirationMinutes: net.expirationMinutes || 30 };
           state.payment.receivingAddress = (container.dataset.address) || (drupalSettings.stablepay && drupalSettings.stablepay.address) || 'generating...';
-          state.payment.expiresAt = (container.dataset.expiresAt) || (drupalSettings.stablepay && drupalSettings.stablepay.expires_at) || new Date(Date.now() + 30 * 60 * 1000).toISOString();
+          state.payment.expiresAt = new Date(Date.now() + (net.expirationMinutes || 30) * 60 * 1000).toISOString();
           render();
           generateQR();
           startPolling();
@@ -380,7 +381,7 @@
             var min = Math.floor(remaining / 60000);
             var sec = Math.floor((remaining % 60000) / 1000);
             state.timer = min + ':' + sec.toString().padStart(2, '0');
-            var timerEl = container.querySelector('[style*="color"]');
+            render();
           }, 1000);
         }
 

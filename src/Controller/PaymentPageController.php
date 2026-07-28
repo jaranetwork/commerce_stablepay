@@ -178,7 +178,7 @@ class PaymentPageController extends ControllerBase {
         'chainId' => 31337,
         'decimals' => 6,
         'requiredConfirmations' => 1,
-        'expirationMinutes' => 60,
+        'expirationMinutes' => $plugin->getExpirationMinutes(),
       ];
     }
 
