@@ -160,6 +160,7 @@ node index.js sweep-api --from 218 --to 228
 
 > **⚠️ Seguridad**: No ejecutes la sweep tool en el servidor de producción ni en ningún equipo
 > permanentemente conectado a internet. La herramienta necesita acceso a la frase mnemónica
-> de 12 palabras (del keystore de Anvil) para derivar las private keys y barrer fondos.
+> de 12/24 palabras de la billetera (ej. MetaMask, TrustWallet) para derivar las private keys
+> y barrer fondos.
 > Ejecútala en una máquina **offline/air-gapped** (sin conexión a internet) y mantén la
-> frase de 12 palabras asegurada fuera del server.
+> frase asegurada fuera del server.
