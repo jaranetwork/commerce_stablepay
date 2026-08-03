@@ -147,6 +147,7 @@ function scheduleExpirationTimer(addr, info) {
   if (expirationTimers.has(addr)) return;
   const delay = info.expires_at - Date.now();
   if (delay <= 0) {
+    console.log(`Payment expired (restored): order=${info.order_id} addr=${addr} net=${resolveNetLabel(info.rpc_url || '', info.token_address || '')}`);
     notifyExpired(info.order_id).then(() => {
       addressNetworkMap.delete(addr);
       addressOrderMap.delete(addr);
@@ -156,7 +157,7 @@ function scheduleExpirationTimer(addr, info) {
   }
   const timer = setTimeout(async () => {
     expirationTimers.delete(addr);
-    console.log(`Payment expired: order=${info.order_id} addr=${addr} token=${info.token_symbol || 'token'}`);
+    console.log(`Payment expired: order=${info.order_id} addr=${addr} net=${resolveNetLabel(info.rpc_url || '', info.token_address || '')} token=${info.token_symbol || 'token'}`);
     await notifyExpired(info.order_id);
     addressNetworkMap.delete(addr);
     addressOrderMap.delete(addr);
