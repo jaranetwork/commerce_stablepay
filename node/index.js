@@ -247,7 +247,13 @@ async function subscribeNetwork(net) {
 
   wsActive = true;
   stopPolling();
-  console.log(`WS connected on ${net.name} (${net.network}) rpc=${net.rpc_url} token=${net.token_address} ws=${wsUrl}`);
+  const watchedAddrs = [...addressNetworkMap.entries()]
+    .filter(([, info]) =>
+      info.rpc_url === net.rpc_url &&
+      info.token_address.toLowerCase() === net.token_address.toLowerCase()
+    )
+    .map(([a]) => a);
+  console.log(`WS connected on ${net.name} (${net.network}) rpc=${net.rpc_url} token=${net.token_address} ws=${wsUrl} watching=${watchedAddrs.length ? watchedAddrs.join(',') : 'none'}`);
   subscriptions.set(netKey, { name: net.name, provider, contract });
 }
 
@@ -443,7 +449,7 @@ app.post('/derive', (req, res) => {
     addressOrderMap.set(addr, order_id);
 
     if (rpc_url && token_address) {
-      console.log(`[monitor] derive order=${order_id} net=${resolveNetLabel(rpc_url, token_address)} rpc=${rpc_url} token=${token_address}`);
+      console.log(`[monitor] derive order=${order_id} net=${resolveNetLabel(rpc_url, token_address)} rpc=${rpc_url} token=${token_address} addr=${addr}`);
       const expires_at = Date.now() + (parseInt(expiration_minutes) || 30) * 60 * 1000;
       const info = {
         order_id,
