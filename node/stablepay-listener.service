@@ -12,6 +12,8 @@ RestartSec=5
 Environment=NODE_ENV=production
 Environment=DRUPAL_BASE_URL=https://127.0.0.1
 Environment=DRUPAL_HOST=lrtv.jaranetwork.com
+StandardOutput=append:/var/log/stablepay-listener.log
+StandardError=append:/var/log/stablepay-listener.log
 
 [Install]
 WantedBy=multi-user.target

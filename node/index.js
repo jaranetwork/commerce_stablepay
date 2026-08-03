@@ -76,6 +76,13 @@ function httpToWs(url) {
   return ws;
 }
 
+function resolveNetLabel(rpc_url, token_address) {
+  const net = networkConfig.find(n =>
+    n.rpc_url === rpc_url && (!token_address || n.token_address.toLowerCase() === token_address.toLowerCase())
+  );
+  return net ? `${net.name}/${net.network}` : (rpc_url || 'unknown');
+}
+
 // --- Persistence (sql.js) ---
 
 async function initDb() {
@@ -224,16 +231,17 @@ async function subscribeNetwork(net) {
   contract.on('Transfer', async (from, to, value, event) => {
     const addr = to.toLowerCase();
     const orderId = addressOrderMap.get(addr);
+    const decimals = await contract.decimals().catch(() => 6n);
+    const humanAmount = ethers.formatUnits(value, decimals);
+    console.log(`[monitor] ws-transfer net=${net.name}/${net.network} to=${addr} value=${humanAmount} ${net.token_symbol} tx=${event.transactionHash} order=${orderId || 'untracked'}`);
     if (orderId) {
-      const decimals = await contract.decimals().catch(() => 6n);
-      const humanAmount = ethers.formatUnits(value, decimals);
       await notifyDrupal(orderId, event.transactionHash, humanAmount, net.token_symbol);
     }
   });
 
   wsActive = true;
   stopPolling();
-  console.log(`WS connected on ${net.name} (${net.network})`);
+  console.log(`WS connected on ${net.name} (${net.network}) rpc=${net.rpc_url} token=${net.token_address} ws=${wsUrl}`);
   subscriptions.set(netKey, { name: net.name, provider, contract });
 }
 
@@ -277,6 +285,7 @@ async function pollAllAddresses() {
           topics: [transferTopic, null, paddedAddr],
         }]);
         const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
+        console.log(`[monitor] poll-detected net=${resolveNetLabel(info.rpc_url, info.token_address)} order=${info.order_id} addr=${addr} balance=${humanAmount} ${info.token_symbol} tx=${lastLog ? lastLog.transactionHash : 'none'}`);
         await notifyDrupal(info.order_id, lastLog ? lastLog.transactionHash : '', humanAmount, info.token_symbol);
         cancelExpirationTimer(addr);
         addressNetworkMap.delete(addr);
@@ -338,6 +347,7 @@ async function notifyDrupal(orderId, txHash, amount, currency) {
       req.write(body);
       req.end();
     });
+    console.log(`[monitor] notify-drupal order=${orderId} tx=${txHash} status=${status}`);
   } catch (err) {
     console.error(`Notify failed for order ${orderId}: ${err.message}`);
   }
@@ -397,7 +407,7 @@ function ensureNetworkSubscription(rpc_url, token_address) {
     n.rpc_url === rpc_url && n.token_address.toLowerCase() === token_address.toLowerCase()
   );
   if (net) {
-    console.log(`Ensuring WS subscription for ${net.name} (${token_address})`);
+    console.log(`[monitor] subscribe-request net=${net.name}/${net.network} rpc=${net.rpc_url} token=${net.token_address}`);
     subscribeNetwork(net).catch(() => {});
   } else {
     console.warn(`No network config found for ${token_address} (rpc: ${rpc_url})`);
@@ -416,7 +426,7 @@ app.post('/derive', (req, res) => {
   try {
     const { rpc_url, token_address, token_symbol, expected_amount, expiration_minutes } = req.body;
     const order_id = parseInt(req.body.order_id);
-    console.log(`POST /derive order=${order_id} rpc=${rpc_url || 'none'} token=${token_address || 'none'}`);
+    console.log(`[monitor] derive order=${order_id} net=${resolveNetLabel(rpc_url || '', token_address || '')} rpc=${rpc_url || 'none'} token=${token_address || 'none'}`);
     if (isNaN(order_id)) {
       return res.status(400).json({ error: 'Invalid order_id' });
     }
