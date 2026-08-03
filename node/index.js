@@ -426,7 +426,6 @@ app.post('/derive', (req, res) => {
   try {
     const { rpc_url, token_address, token_symbol, expected_amount, expiration_minutes } = req.body;
     const order_id = parseInt(req.body.order_id);
-    console.log(`[monitor] derive order=${order_id} net=${resolveNetLabel(rpc_url || '', token_address || '')} rpc=${rpc_url || 'none'} token=${token_address || 'none'}`);
     if (isNaN(order_id)) {
       return res.status(400).json({ error: 'Invalid order_id' });
     }
@@ -438,6 +437,7 @@ app.post('/derive', (req, res) => {
     addressOrderMap.set(addr, order_id);
 
     if (rpc_url && token_address) {
+      console.log(`[monitor] derive order=${order_id} net=${resolveNetLabel(rpc_url, token_address)} rpc=${rpc_url} token=${token_address}`);
       const expires_at = Date.now() + (parseInt(expiration_minutes) || 30) * 60 * 1000;
       const info = {
         order_id,
