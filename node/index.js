@@ -236,11 +236,12 @@ async function subscribeNetwork(net) {
   contract.on('Transfer', async (from, to, value, event) => {
     const addr = to.toLowerCase();
     const orderId = addressOrderMap.get(addr);
-    const decimals = await contract.decimals().catch(() => 6n);
-    const humanAmount = ethers.formatUnits(value, decimals);
-    console.log(`[monitor] ws-transfer net=${net.name}/${net.network} to=${addr} value=${humanAmount} ${net.token_symbol} tx=${event.transactionHash} order=${orderId || 'untracked'}`);
     if (orderId) {
-      await notifyDrupal(orderId, event.transactionHash, humanAmount, net.token_symbol);
+      const decimals = await contract.decimals().catch(() => 6n);
+      const humanAmount = ethers.formatUnits(value, decimals);
+      const txHash = (event.log && event.log.transactionHash) || event.transactionHash;
+      console.log(`[monitor] ws-transfer net=${net.name}/${net.network} to=${addr} value=${humanAmount} ${net.token_symbol} tx=${txHash} order=${orderId}`);
+      await notifyDrupal(orderId, txHash, humanAmount, net.token_symbol);
     }
   });
 
