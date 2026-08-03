@@ -132,43 +132,9 @@ class PaymentPageController extends ControllerBase {
       'commerce_order' => $commerce_order->id(),
     ])->toString();
 
-    $networks = [
-      [
-        'name' => 'StableChain',
-        'network' => 'stablechain',
-        'tokenSymbol' => 'USDT',
-        'tokenAddress' => $plugin->getStablechainUsdt(),
-        'rpcUrl' => $plugin->getStablechainRpc(),
-        'chainId' => 988,
-        'decimals' => 6,
-        'requiredConfirmations' => $plugin->getConfirmationBlocks(),
-        'expirationMinutes' => $plugin->getExpirationMinutes(),
-      ],
-      [
-        'name' => 'Celo',
-        'network' => 'celo',
-        'tokenSymbol' => 'USDC',
-        'tokenAddress' => $plugin->getCeloUsdc(),
-        'rpcUrl' => $plugin->getCeloRpc(),
-        'chainId' => 42220,
-        'decimals' => 6,
-        'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
-        'expirationMinutes' => $plugin->getExpirationMinutes(),
-      ],
-      [
-        'name' => 'Celo',
-        'network' => 'celo',
-        'tokenSymbol' => 'USDT',
-        'tokenAddress' => $plugin->getCeloUsdt(),
-        'rpcUrl' => $plugin->getCeloRpc(),
-        'chainId' => 42220,
-        'decimals' => 6,
-        'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
-        'expirationMinutes' => $plugin->getExpirationMinutes(),
-      ],
-    ];
+    $networks = [];
 
-    if ($plugin->getMode() === 'test' && $plugin->getTestRpcUrl()) {
+    if ($plugin->getMode() === 'test' && $plugin->getTestRpcUrl() && $plugin->getTestTokenAddress()) {
       $networks[] = [
         'name' => 'Test (' . $plugin->getTestTokenSymbol() . ')',
         'network' => 'test',
@@ -180,6 +146,100 @@ class PaymentPageController extends ControllerBase {
         'requiredConfirmations' => 1,
         'expirationMinutes' => $plugin->getExpirationMinutes(),
       ];
+    }
+
+    if ($plugin->getMode() === 'live') {
+      if ($plugin->getStablechainRpc() && $plugin->getStablechainUsdt()) {
+        $networks[] = [
+          'name' => 'StableChain',
+          'network' => 'stablechain',
+          'tokenSymbol' => 'USDT',
+          'tokenAddress' => $plugin->getStablechainUsdt(),
+          'rpcUrl' => $plugin->getStablechainRpc(),
+          'chainId' => 988,
+          'decimals' => 6,
+          'requiredConfirmations' => $plugin->getConfirmationBlocks(),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getCeloRpc() && $plugin->getCeloUsdc()) {
+        $networks[] = [
+          'name' => 'Celo',
+          'network' => 'celo',
+          'tokenSymbol' => 'USDC',
+          'tokenAddress' => $plugin->getCeloUsdc(),
+          'rpcUrl' => $plugin->getCeloRpc(),
+          'chainId' => 42220,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getCeloRpc() && $plugin->getCeloUsdt()) {
+        $networks[] = [
+          'name' => 'Celo',
+          'network' => 'celo',
+          'tokenSymbol' => 'USDT',
+          'tokenAddress' => $plugin->getCeloUsdt(),
+          'rpcUrl' => $plugin->getCeloRpc(),
+          'chainId' => 42220,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getArbitrumRpc() && $plugin->getArbitrumUsdc()) {
+        $networks[] = [
+          'name' => 'Arbitrum',
+          'network' => 'arbitrum',
+          'tokenSymbol' => 'USDC',
+          'tokenAddress' => $plugin->getArbitrumUsdc(),
+          'rpcUrl' => $plugin->getArbitrumRpc(),
+          'chainId' => 42161,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getArbitrumRpc() && $plugin->getArbitrumUsdt()) {
+        $networks[] = [
+          'name' => 'Arbitrum',
+          'network' => 'arbitrum',
+          'tokenSymbol' => 'USDT',
+          'tokenAddress' => $plugin->getArbitrumUsdt(),
+          'rpcUrl' => $plugin->getArbitrumRpc(),
+          'chainId' => 42161,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getPolygonRpc() && $plugin->getPolygonUsdc()) {
+        $networks[] = [
+          'name' => 'Polygon',
+          'network' => 'polygon',
+          'tokenSymbol' => 'USDC',
+          'tokenAddress' => $plugin->getPolygonUsdc(),
+          'rpcUrl' => $plugin->getPolygonRpc(),
+          'chainId' => 137,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getPolygonRpc() && $plugin->getPolygonUsdt()) {
+        $networks[] = [
+          'name' => 'Polygon',
+          'network' => 'polygon',
+          'tokenSymbol' => 'USDT',
+          'tokenAddress' => $plugin->getPolygonUsdt(),
+          'rpcUrl' => $plugin->getPolygonRpc(),
+          'chainId' => 137,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
     }
 
     $networks = array_values(array_filter($networks, fn($n) => !empty($n['tokenAddress'])));
