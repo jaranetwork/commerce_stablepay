@@ -95,8 +95,9 @@
             html += '<button type="button" class="stablepay-btn-back" style="display: inline-flex; align-items: center; gap: 0.25rem; background: none; border: none; cursor: pointer; color: var(--primary, #2563eb); font-size: 0.75rem; padding: 0 0 0.75rem 0;">← Change token</button>';
 
             html += '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
-            filtered.forEach(function (net, i) {
-              html += '<button type="button" class="stablepay-btn-network" data-network="' + i + '" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 8px; border: 1px solid var(--border, #e5e7eb); background: var(--background, #f9fafb); cursor: pointer; color: var(--text, #111); font-size: 0.875rem; text-align: left; width: 100%;">';
+            filtered.forEach(function (net) {
+              var idx = networks.indexOf(net);
+              html += '<button type="button" class="stablepay-btn-network" data-network="' + idx + '" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 8px; border: 1px solid var(--border, #e5e7eb); background: var(--background, #f9fafb); cursor: pointer; color: var(--text, #111); font-size: 0.875rem; text-align: left; width: 100%;">';
               html += '<div><div style="font-weight: 600;">' + escapeHtml(net.name || net.network) + '</div>';
               html += '<div style="font-size: 0.75rem; color: var(--text-secondary, #666); margin-top: 0.25rem;">' + escapeHtml(net.network) + '</div></div>';
               html += '<div style="font-size: 0.75rem; color: var(--primary, #2563eb);">$' + amount.toFixed(2) + '</div>';
