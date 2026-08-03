@@ -14,6 +14,11 @@ if (fs.existsSync(envPath)) {
 const initSqlJs = require('sql.js');
 const { ethers } = require('ethers');
 
+for (const level of ['log', 'warn', 'error']) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => original(`[${new Date().toISOString()}]`, ...args);
+}
+
 const app = express();
 app.use(express.json());
 
