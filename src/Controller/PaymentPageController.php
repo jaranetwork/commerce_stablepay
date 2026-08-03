@@ -497,6 +497,58 @@ class PaymentPageController extends ControllerBase {
           'expiration_minutes' => $plugin->getExpirationMinutes(),
         ];
       }
+      if ($plugin->getArbitrumRpc() && $plugin->getArbitrumUsdc()) {
+        $networks[] = [
+          'name' => 'Arbitrum',
+          'network' => 'arbitrum',
+          'rpc_url' => $plugin->getArbitrumRpc(),
+          'token_address' => $plugin->getArbitrumUsdc(),
+          'token_symbol' => 'USDC',
+          'chain_id' => 42161,
+          'decimals' => 6,
+          'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expiration_minutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getArbitrumRpc() && $plugin->getArbitrumUsdt()) {
+        $networks[] = [
+          'name' => 'Arbitrum',
+          'network' => 'arbitrum',
+          'rpc_url' => $plugin->getArbitrumRpc(),
+          'token_address' => $plugin->getArbitrumUsdt(),
+          'token_symbol' => 'USDT',
+          'chain_id' => 42161,
+          'decimals' => 6,
+          'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expiration_minutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getPolygonRpc() && $plugin->getPolygonUsdc()) {
+        $networks[] = [
+          'name' => 'Polygon',
+          'network' => 'polygon',
+          'rpc_url' => $plugin->getPolygonRpc(),
+          'token_address' => $plugin->getPolygonUsdc(),
+          'token_symbol' => 'USDC',
+          'chain_id' => 137,
+          'decimals' => 6,
+          'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expiration_minutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getPolygonRpc() && $plugin->getPolygonUsdt()) {
+        $networks[] = [
+          'name' => 'Polygon',
+          'network' => 'polygon',
+          'rpc_url' => $plugin->getPolygonRpc(),
+          'token_address' => $plugin->getPolygonUsdt(),
+          'token_symbol' => 'USDT',
+          'chain_id' => 137,
+          'decimals' => 6,
+          'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expiration_minutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
     }
 
     return new JsonResponse([

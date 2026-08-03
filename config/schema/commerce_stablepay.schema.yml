@@ -19,6 +19,24 @@ commerce_payment.commerce_payment_gateway.plugin.stablepay_offsite:
     celo_usdt:
       type: string
       label: 'Celo USDT contract address'
+    arbitrum_rpc:
+      type: string
+      label: 'Arbitrum RPC URL'
+    polygon_rpc:
+      type: string
+      label: 'Polygon RPC URL'
+    arbitrum_usdc:
+      type: string
+      label: 'Arbitrum USDC contract address'
+    arbitrum_usdt:
+      type: string
+      label: 'Arbitrum USDT contract address'
+    polygon_usdc:
+      type: string
+      label: 'Polygon USDC contract address'
+    polygon_usdt:
+      type: string
+      label: 'Polygon USDT contract address'
     confirmation_blocks:
       type: integer
       label: 'Required confirmations'

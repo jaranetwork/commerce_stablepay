@@ -111,8 +111,15 @@
         function renderPaymentScreen() {
           try {
           var p = state.payment;
-          var netColor = p.network === 'celo' ? '#35d07f' : '#6366f1';
-          var netUrl = p.network === 'celo' ? 'https://celo.org/' : 'https://www.stable.xyz/';
+          var networkInfo = {
+            celo: { color: '#35d07f', url: 'https://celo.org/', explorer: 'https://celoscan.io/tx/' },
+            stablechain: { color: '#6366f1', url: 'https://www.stable.xyz/', explorer: 'https://stablescan.xyz/tx/' },
+            arbitrum: { color: '#28a0f0', url: 'https://arbitrum.io/', explorer: 'https://arbiscan.io/tx/' },
+            polygon: { color: '#8247e5', url: 'https://polygon.technology/', explorer: 'https://polygonscan.com/tx/' },
+          };
+          var netInfo = networkInfo[p.network] || { color: '#6366f1', url: 'https://www.stable.xyz/', explorer: 'https://stablescan.xyz/tx/' };
+          var netColor = netInfo.color;
+          var netUrl = netInfo.url;
           var isExpired = state.status === 'expired';
           var isConfirmed = state.status === 'confirmed';
 
@@ -173,7 +180,7 @@
             html += '<div style="padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; background: ' + statusBg + '; color: #fff;">';
             html += '<div style="font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">Payment confirmed!</div>';
             if (state.txHash) {
-              var explorerUrl = (p.network === 'celo' ? 'https://celoscan.io/tx/' : 'https://stablescan.xyz/tx/') + state.txHash;
+              var explorerUrl = netInfo.explorer + state.txHash;
               html += '<a href="' + explorerUrl + '" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: #fff; text-decoration: underline;">View on Explorer</a>';
             }
             html += '</div>';

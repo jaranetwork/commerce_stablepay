@@ -67,6 +67,12 @@ function httpToWs(url) {
   if (ws.includes('forno.celo.org') && !ws.endsWith('/ws')) {
     return ws + '/ws';
   }
+  if (ws.includes('arb1.arbitrum.io') && ws.endsWith('/rpc')) {
+    return ws.replace(/\/rpc$/, '/ws');
+  }
+  if (ws.includes('polygon-rpc.com') && !ws.endsWith('/ws')) {
+    return ws + '/ws';
+  }
   return ws;
 }
 

@@ -38,6 +38,14 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
     return $this->configuration['celo_rpc'] ?? '';
   }
 
+  public function getArbitrumRpc() {
+    return $this->configuration['arbitrum_rpc'] ?? '';
+  }
+
+  public function getPolygonRpc() {
+    return $this->configuration['polygon_rpc'] ?? '';
+  }
+
   public function getStablechainUsdt() {
     return $this->configuration['stablechain_usdt'] ?? '';
   }
@@ -48,6 +56,22 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
 
   public function getCeloUsdt() {
     return $this->configuration['celo_usdt'] ?? '';
+  }
+
+  public function getArbitrumUsdc() {
+    return $this->configuration['arbitrum_usdc'] ?? '';
+  }
+
+  public function getArbitrumUsdt() {
+    return $this->configuration['arbitrum_usdt'] ?? '';
+  }
+
+  public function getPolygonUsdc() {
+    return $this->configuration['polygon_usdc'] ?? '';
+  }
+
+  public function getPolygonUsdt() {
+    return $this->configuration['polygon_usdt'] ?? '';
   }
 
   public function getConfirmationBlocks() {
@@ -86,6 +110,12 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       'stablechain_usdt' => '0x779Ded0c9e1022225f8E0630b35a9b54bE713736',
       'celo_usdc' => '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
       'celo_usdt' => '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e',
+      'arbitrum_rpc' => 'https://arb1.arbitrum.io/rpc',
+      'polygon_rpc' => 'https://polygon-rpc.com',
+      'arbitrum_usdc' => '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      'arbitrum_usdt' => '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+      'polygon_usdc' => '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+      'polygon_usdt' => '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
       'confirmation_blocks' => 1,
       'expiration_minutes' => 30,
       'sweep_address' => '',
@@ -145,6 +175,42 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       '#type' => 'textfield',
       '#title' => $this->t('Celo USDT Contract'),
       '#default_value' => $this->configuration['celo_usdt'],
+    ];
+
+    $form['arbitrum_rpc'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Arbitrum RPC URL'),
+      '#default_value' => $this->configuration['arbitrum_rpc'],
+    ];
+
+    $form['arbitrum_usdc'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Arbitrum USDC Contract'),
+      '#default_value' => $this->configuration['arbitrum_usdc'],
+    ];
+
+    $form['arbitrum_usdt'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Arbitrum USDT Contract'),
+      '#default_value' => $this->configuration['arbitrum_usdt'],
+    ];
+
+    $form['polygon_rpc'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Polygon RPC URL'),
+      '#default_value' => $this->configuration['polygon_rpc'],
+    ];
+
+    $form['polygon_usdc'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Polygon USDC Contract'),
+      '#default_value' => $this->configuration['polygon_usdc'],
+    ];
+
+    $form['polygon_usdt'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Polygon USDT Contract'),
+      '#default_value' => $this->configuration['polygon_usdt'],
     ];
 
     $form['confirmation_blocks'] = [
@@ -211,6 +277,12 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       $this->configuration['stablechain_usdt'] = $values['stablechain_usdt'];
       $this->configuration['celo_usdc'] = $values['celo_usdc'];
       $this->configuration['celo_usdt'] = $values['celo_usdt'];
+      $this->configuration['arbitrum_rpc'] = $values['arbitrum_rpc'];
+      $this->configuration['arbitrum_usdc'] = $values['arbitrum_usdc'];
+      $this->configuration['arbitrum_usdt'] = $values['arbitrum_usdt'];
+      $this->configuration['polygon_rpc'] = $values['polygon_rpc'];
+      $this->configuration['polygon_usdc'] = $values['polygon_usdc'];
+      $this->configuration['polygon_usdt'] = $values['polygon_usdt'];
       $this->configuration['confirmation_blocks'] = $values['confirmation_blocks'];
       $this->configuration['expiration_minutes'] = $values['expiration_minutes'];
       $this->configuration['sweep_address'] = $values['sweep_address'];
