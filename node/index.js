@@ -190,6 +190,7 @@ async function subscribeNetwork(net) {
   if (subscriptions.has(netKey)) return;
 
   const wsUrl = httpToWs(net.rpc_url);
+  const subState = { intentionalClose: false };
   let provider;
   try {
     provider = new ethers.WebSocketProvider(wsUrl, undefined, { staticNetwork: true });
@@ -202,6 +203,23 @@ async function subscribeNetwork(net) {
     console.warn(`WS disconnected on ${net.name}: code=${event.code} reason=${event.reason || 'none'}`);
     subscriptions.delete(netKey);
     wsActive = subscriptions.size > 0;
+
+    if (subState.intentionalClose) {
+      console.log(`WS closed intentionally on ${net.name}, no reconnect`);
+      return;
+    }
+    if (addressNetworkMap.size === 0) {
+      console.warn(`WS not reconnecting on ${net.name}, no active addresses`);
+      return;
+    }
+    const stillWatchingThisNet = [...addressNetworkMap.values()].some(info =>
+      info.rpc_url === net.rpc_url &&
+      info.token_address.toLowerCase() === net.token_address.toLowerCase()
+    );
+    if (!stillWatchingThisNet) {
+      console.warn(`WS not reconnecting on ${net.name}, no active addresses on this network`);
+      return;
+    }
 
     const maxRetries = 3;
     let retries = reconnectRetries.get(netKey) || 0;
@@ -262,7 +280,7 @@ async function subscribeNetwork(net) {
     )
     .map(([a]) => a);
   console.log(`WS connected on ${net.name} (${net.network}) rpc=${net.rpc_url} token=${net.token_address} ws=${wsUrl} watching=${watchedAddrs.length ? watchedAddrs.join(',') : 'none'}`);
-  subscriptions.set(netKey, { name: net.name, provider, contract, rpc_url: net.rpc_url, token_address: net.token_address });
+  subscriptions.set(netKey, { name: net.name, provider, contract, rpc_url: net.rpc_url, token_address: net.token_address, subState });
 }
 
 async function pollAllAddresses() {
@@ -341,6 +359,7 @@ function cleanupEmptySubscriptions() {
     );
     if (!stillWatching) {
       console.log(`Cleaning up WS subscription for ${sub.name} (no active addresses)`);
+      if (sub.subState) sub.subState.intentionalClose = true;
       try { sub.provider.websocket.close(); } catch {}
       subscriptions.delete(netKey);
     }

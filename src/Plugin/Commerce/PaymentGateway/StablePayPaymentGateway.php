@@ -110,7 +110,7 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       'stablechain_usdt' => '0x779Ded0c9e1022225f8E0630b35a9b54bE713736',
       'celo_usdc' => '0xcebA9300f2b948710d2653dD7B07f33A8B32118C',
       'celo_usdt' => '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e',
-      'arbitrum_rpc' => 'https://arb1.arbitrum.io/rpc',
+      'arbitrum_rpc' => 'https://arbitrum.drpc.org',
       'polygon_rpc' => 'https://polygon-rpc.com',
       'arbitrum_usdc' => '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
       'arbitrum_usdt' => '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
