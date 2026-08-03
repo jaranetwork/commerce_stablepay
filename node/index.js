@@ -152,6 +152,7 @@ function scheduleExpirationTimer(addr, info) {
       addressNetworkMap.delete(addr);
       addressOrderMap.delete(addr);
       deletePending(addr);
+      cleanupEmptySubscriptions();
     });
     return;
   }
@@ -162,6 +163,7 @@ function scheduleExpirationTimer(addr, info) {
     addressNetworkMap.delete(addr);
     addressOrderMap.delete(addr);
     deletePending(addr);
+    cleanupEmptySubscriptions();
   }, delay);
   expirationTimers.set(addr, timer);
 }
@@ -243,6 +245,11 @@ async function subscribeNetwork(net) {
       const txHash = (event.log && event.log.transactionHash) || event.transactionHash;
       console.log(`[monitor] ws-transfer net=${net.name}/${net.network} to=${addr} value=${humanAmount} ${net.token_symbol} tx=${txHash} order=${orderId}`);
       await notifyDrupal(orderId, txHash, humanAmount, net.token_symbol);
+      cancelExpirationTimer(addr);
+      addressNetworkMap.delete(addr);
+      addressOrderMap.delete(addr);
+      deletePending(addr);
+      cleanupEmptySubscriptions();
     }
   });
 
@@ -255,7 +262,7 @@ async function subscribeNetwork(net) {
     )
     .map(([a]) => a);
   console.log(`WS connected on ${net.name} (${net.network}) rpc=${net.rpc_url} token=${net.token_address} ws=${wsUrl} watching=${watchedAddrs.length ? watchedAddrs.join(',') : 'none'}`);
-  subscriptions.set(netKey, { name: net.name, provider, contract });
+  subscriptions.set(netKey, { name: net.name, provider, contract, rpc_url: net.rpc_url, token_address: net.token_address });
 }
 
 async function pollAllAddresses() {
@@ -312,8 +319,8 @@ async function pollAllAddresses() {
 
   if (addressNetworkMap.size === 0) {
     stopPolling();
-    cleanupSubscriptions();
   }
+  cleanupEmptySubscriptions();
 }
 
 function cleanupSubscriptions() {
@@ -324,6 +331,24 @@ function cleanupSubscriptions() {
   }
   subscriptions.clear();
   wsActive = false;
+}
+
+function cleanupEmptySubscriptions() {
+  for (const [netKey, sub] of subscriptions) {
+    const stillWatching = [...addressNetworkMap.values()].some(info =>
+      info.rpc_url === sub.rpc_url &&
+      info.token_address.toLowerCase() === sub.token_address.toLowerCase()
+    );
+    if (!stillWatching) {
+      console.log(`Cleaning up WS subscription for ${sub.name} (no active addresses)`);
+      try { sub.provider.websocket.close(); } catch {}
+      subscriptions.delete(netKey);
+    }
+  }
+  wsActive = subscriptions.size > 0;
+  if (!wsActive && addressNetworkMap.size > 0) {
+    checkPollFallback();
+  }
 }
 
 async function notifyDrupal(orderId, txHash, amount, currency) {
