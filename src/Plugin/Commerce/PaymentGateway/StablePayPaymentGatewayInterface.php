@@ -28,4 +28,10 @@ interface StablePayPaymentGatewayInterface {
 
   public function getTestTokenAddress();
 
+  public function getEthereumRpc();
+
+  public function getEthereumUsdc();
+
+  public function getEthereumUsdt();
+
 }

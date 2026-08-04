@@ -40,3 +40,17 @@ commerce_stablepay.derive:
     parameters:
       commerce_order:
         type: entity:commerce_order
+
+commerce_stablepay.gas_price:
+  path: '/stablepay/payment/gas-price'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::gasPrice'
+  requirements:
+    _access: 'TRUE'
+
+commerce_stablepay.gas_estimate:
+  path: '/stablepay/payment/gas-estimate'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::gasEstimate'
+  requirements:
+    _access: 'TRUE'

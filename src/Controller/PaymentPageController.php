@@ -251,6 +251,32 @@ class PaymentPageController extends ControllerBase {
           'expirationMinutes' => $plugin->getExpirationMinutes(),
         ];
       }
+      if ($plugin->getEthereumRpc() && $plugin->getEthereumUsdc()) {
+        $networks[] = [
+          'name' => 'Ethereum',
+          'network' => 'ethereum',
+          'tokenSymbol' => 'USDC',
+          'tokenAddress' => $plugin->getEthereumUsdc(),
+          'rpcUrl' => $plugin->getEthereumRpc(),
+          'chainId' => 1,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getEthereumRpc() && $plugin->getEthereumUsdt()) {
+        $networks[] = [
+          'name' => 'Ethereum',
+          'network' => 'ethereum',
+          'tokenSymbol' => 'USDT',
+          'tokenAddress' => $plugin->getEthereumUsdt(),
+          'rpcUrl' => $plugin->getEthereumRpc(),
+          'chainId' => 1,
+          'decimals' => 6,
+          'requiredConfirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expirationMinutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
     }
 
     $networks = array_values(array_filter($networks, fn($n) => !empty($n['tokenAddress'])));
@@ -503,6 +529,48 @@ class PaymentPageController extends ControllerBase {
     }
   }
 
+  public function gasEstimate(Request $request) {
+    $result = static::callSidecarGet('gas-estimate', [
+      'rpc_url' => $request->query->get('rpc_url', ''),
+      'token_address' => $request->query->get('token_address', ''),
+      'to' => $request->query->get('to', ''),
+      'amount' => $request->query->get('amount', ''),
+      'decimals' => $request->query->get('decimals', 6),
+    ]);
+    if ($result === NULL) {
+      return new JsonResponse(['error' => 'sidecar unreachable'], 502);
+    }
+    return new JsonResponse($result);
+  }
+
+  public function gasPrice(Request $request) {
+    $allowed = ['ethereum', 'matic-network', 'celo', 'tether'];
+    $coin = $request->query->get('coin', 'ethereum');
+    if (!in_array($coin, $allowed, TRUE)) {
+      $coin = 'ethereum';
+    }
+    $cache = \Drupal::cache();
+    $cid = 'commerce_stablepay:usd:' . $coin;
+    if ($cached = $cache->get($cid)) {
+      return new JsonResponse(['usd' => $cached->data, 'coin' => $coin, 'updated_at' => $cached->created + 300]);
+    }
+    $price = 0;
+    try {
+      $client = \Drupal::httpClient();
+      $response = $client->get('https://api.coingecko.com/api/v3/simple/price?ids=' . urlencode($coin) . '&vs_currencies=usd', [
+        'timeout' => 5,
+      ]);
+      $body = json_decode($response->getBody(), TRUE);
+      $price = $body[$coin]['usd'] ?? 0;
+      if ($price > 0) {
+        $cache->set($cid, $price, time() + 300);
+      }
+    } catch (\Exception $e) {
+      \Drupal::logger('commerce_stablepay')->warning('Coin->USD fetch failed: ' . $e->getMessage());
+    }
+    return new JsonResponse(['usd' => $price, 'coin' => $coin, 'updated_at' => time()]);
+  }
+
   public function gatewayConfig() {
     $storage = $this->entityTypeManager()->getStorage('commerce_payment_gateway');
     $gateways = $storage->loadByProperties(['plugin' => 'stablepay_offsite']);
@@ -615,6 +683,32 @@ class PaymentPageController extends ControllerBase {
           'token_address' => $plugin->getPolygonUsdt(),
           'token_symbol' => 'USDT',
           'chain_id' => 137,
+          'decimals' => 6,
+          'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expiration_minutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getEthereumRpc() && $plugin->getEthereumUsdc()) {
+        $networks[] = [
+          'name' => 'Ethereum',
+          'network' => 'ethereum',
+          'rpc_url' => $plugin->getEthereumRpc(),
+          'token_address' => $plugin->getEthereumUsdc(),
+          'token_symbol' => 'USDC',
+          'chain_id' => 1,
+          'decimals' => 6,
+          'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
+          'expiration_minutes' => $plugin->getExpirationMinutes(),
+        ];
+      }
+      if ($plugin->getEthereumRpc() && $plugin->getEthereumUsdt()) {
+        $networks[] = [
+          'name' => 'Ethereum',
+          'network' => 'ethereum',
+          'rpc_url' => $plugin->getEthereumRpc(),
+          'token_address' => $plugin->getEthereumUsdt(),
+          'token_symbol' => 'USDT',
+          'chain_id' => 1,
           'decimals' => 6,
           'required_confirmations' => min($plugin->getConfirmationBlocks(), 12),
           'expiration_minutes' => $plugin->getExpirationMinutes(),

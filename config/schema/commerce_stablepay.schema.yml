@@ -37,6 +37,15 @@ commerce_payment.commerce_payment_gateway.plugin.stablepay_offsite:
     polygon_usdt:
       type: string
       label: 'Polygon USDT contract address'
+    ethereum_rpc:
+      type: string
+      label: 'Ethereum RPC URL'
+    ethereum_usdc:
+      type: string
+      label: 'Ethereum USDC contract address'
+    ethereum_usdt:
+      type: string
+      label: 'Ethereum USDT contract address'
     confirmation_blocks:
       type: integer
       label: 'Required confirmations'

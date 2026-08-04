@@ -74,6 +74,18 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
     return $this->configuration['polygon_usdt'] ?? '';
   }
 
+  public function getEthereumRpc() {
+    return $this->configuration['ethereum_rpc'] ?? '';
+  }
+
+  public function getEthereumUsdc() {
+    return $this->configuration['ethereum_usdc'] ?? '';
+  }
+
+  public function getEthereumUsdt() {
+    return $this->configuration['ethereum_usdt'] ?? '';
+  }
+
   public function getConfirmationBlocks() {
     return (int) ($this->configuration['confirmation_blocks'] ?? 1);
   }
@@ -116,6 +128,9 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       'arbitrum_usdt' => '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
       'polygon_usdc' => '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
       'polygon_usdt' => '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+      'ethereum_rpc' => 'https://ethereum.drpc.org',
+      'ethereum_usdc' => '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+      'ethereum_usdt' => '0xdAC17F958D2ee523a2206206994597C13D831ec7',
       'confirmation_blocks' => 1,
       'expiration_minutes' => 30,
       'sweep_address' => '',
@@ -213,6 +228,24 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       '#default_value' => $this->configuration['polygon_usdt'],
     ];
 
+    $form['ethereum_rpc'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Ethereum RPC URL'),
+      '#default_value' => $this->configuration['ethereum_rpc'],
+    ];
+
+    $form['ethereum_usdc'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Ethereum USDC Contract'),
+      '#default_value' => $this->configuration['ethereum_usdc'],
+    ];
+
+    $form['ethereum_usdt'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Ethereum USDT Contract'),
+      '#default_value' => $this->configuration['ethereum_usdt'],
+    ];
+
     $form['confirmation_blocks'] = [
       '#type' => 'number',
       '#title' => $this->t('Required Confirmations'),
@@ -283,6 +316,9 @@ class StablePayPaymentGateway extends PaymentGatewayBase implements SupportsNoti
       $this->configuration['polygon_rpc'] = $values['polygon_rpc'];
       $this->configuration['polygon_usdc'] = $values['polygon_usdc'];
       $this->configuration['polygon_usdt'] = $values['polygon_usdt'];
+      $this->configuration['ethereum_rpc'] = $values['ethereum_rpc'];
+      $this->configuration['ethereum_usdc'] = $values['ethereum_usdc'];
+      $this->configuration['ethereum_usdt'] = $values['ethereum_usdt'];
       $this->configuration['confirmation_blocks'] = $values['confirmation_blocks'];
       $this->configuration['expiration_minutes'] = $values['expiration_minutes'];
       $this->configuration['sweep_address'] = $values['sweep_address'];

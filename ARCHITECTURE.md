@@ -1,6 +1,6 @@
 # Arquitectura — StablePay (commerce_stablepay)
 
-Gateway de pago cripto off-site para Drupal Commerce. Permite pagar con **USDC/USDT** en varias redes EVM (StableChain, Celo, Arbitrum, Polygon) usando una **HD Wallet en modo XPUB (watch-only)** y un **sidecar Node.js** que monitorea la blockchain (WebSocket con fallback a polling HTTP) y notifica a Drupal cuando se detecta el pago.
+Gateway de pago cripto off-site para Drupal Commerce. Permite pagar con **USDC/USDT** en varias redes EVM (StableChain, Celo, Arbitrum, Polygon, Ethereum) usando una **HD Wallet en modo XPUB (watch-only)** y un **sidecar Node.js** que monitorea la blockchain (WebSocket con fallback a polling HTTP) y notifica a Drupal cuando se detecta el pago.
 
 ---
 
@@ -30,6 +30,7 @@ flowchart TB
         CELO["Celo (42220)"]
         ARB["Arbitrum (42161)"]
         POL["Polygon (137)"]
+        ETH["Ethereum (1)"]
         STABLE["StableChain (988)"]
         TEST["Test / Anvil (31337)"]
     end
@@ -310,6 +311,8 @@ sequenceDiagram
 | `status` | `/stablepay/payment/status/{order}` | `PaymentPageController::status` | `access checkout` | Polling JS (3s): estado order + balance on-chain + auto-confirm |
 | `config` | `/stablepay/payment/config` | `PaymentPageController::gatewayConfig` | público (`TRUE`) | Sidecar obtiene networks/notify_url al arrancar |
 | `derive` | `/stablepay/payment/derive-address/{order}` | `PaymentPageController::deriveAddress` | `access checkout` | Registra monitoreo de red+token en sidecar |
+| `gas_price` | `/stablepay/payment/gas-price` | `PaymentPageController::gasPrice` | público (`TRUE`) | Precio USD del token nativo por red (CoinGecko, cache 5min por `coin`) para el fee estimado |
+| `gas_estimate` | `/stablepay/payment/gas-estimate` | `PaymentPageController::gasEstimate` | público (`TRUE`) | Proxy: JS → Drupal → sidecar `/gas-estimate` |
 
 ### Endpoints Sidecar (Express, puerto 3001)
 
@@ -318,6 +321,7 @@ sequenceDiagram
 | `POST` | `/derive` | `{order_id, rpc_url?, token_address?, token_symbol?, expected_amount?, expiration_minutes?}` | `{address}` |
 | `GET` | `/balance/:orderId` | query `rpc_url, token_address, token_symbol?, expected_amount?` | `{balance, expected, token_symbol, found}` |
 | `GET` | `/get-tx/:orderId` | query `rpc_url, token_address` | `{tx_hash, address}` |
+| `GET` | `/gas-estimate` | query `rpc_url, token_address, to?, amount?, decimals?` | `{gas_limit, gas_price, cost_native, cost_wei}` |
 | `POST` | `/webhook` | `{order_id, tx_hash, amount, currency}` | `{status: 'ok'}` (testing) |
 | `GET` | `/health` | — | `{status, xpub, ws, polling, subscriptions, addresses, networks}` |
 
@@ -341,8 +345,10 @@ sequenceDiagram
 | Arbitrum | 42161 | USDT | `0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9` | `https://arbitrum.drpc.org` | `mode = live` |
 | Polygon | 137 | USDC | `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` | `https://polygon-rpc.com` | `mode = live` |
 | Polygon | 137 | USDT | `0xc2132D05D31c914a87C6611C10748AEb04B58e8F` | `https://polygon-rpc.com` | `mode = live` |
+| Ethereum | 1 | USDC | `0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48` | `https://ethereum.drpc.org` | `mode = live` |
+| Ethereum | 1 | USDT | `0xdAC17F958D2ee523a2206206994597C13D831ec7` | `https://ethereum.drpc.org` | `mode = live` |
 
-> Nota: los RPC default de Polygon/Arbitrum pueden requerir un endpoint con API key. El sidecar solo carga `networkConfig` al arrancar (`/config`) — **cambios en la UI del gateway requieren reiniciar el sidecar**.
+> Nota: los RPC default de Polygon/Arbitrum/Ethereum pueden requerir un endpoint con API key. El sidecar solo carga `networkConfig` al arrancar (`/config`) — **cambios en la UI del gateway requieren reiniciar el sidecar**.
 
 ---
 

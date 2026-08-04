@@ -596,6 +596,45 @@ app.get('/get-tx/:orderId', async (req, res) => {
   }
 });
 
+app.get('/gas-estimate', async (req, res) => {
+  try {
+    const { rpc_url, token_address, to, amount, decimals } = req.query;
+    if (!rpc_url || !token_address) {
+      return res.status(400).json({ error: 'Missing rpc_url or token_address' });
+    }
+
+    const provider = new ethers.JsonRpcProvider(rpc_url, undefined, {
+      batchMaxCount: 1, staticNetwork: true,
+    });
+
+    const feeData = await provider.getFeeData();
+    const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
+
+    let gasLimit = 65000n;
+    if (to && ethers.isAddress(to)) {
+      try {
+        const dec = parseInt(decimals) || 6;
+        const amt = ethers.parseUnits(amount || '1', dec);
+        const data = '0xa9059cbb' + to.slice(2).padStart(64, '0') + amt.toString(16).padStart(64, '0');
+        gasLimit = await provider.estimateGas({ to: token_address, data });
+      } catch (err) {
+        console.warn(`GAS estimate fallback for ${token_address}:`, err.reason || err.shortMessage || 'estimate failed');
+      }
+    }
+
+    const costWei = gasLimit * gasPrice;
+    res.json({
+      gas_limit: gasLimit.toString(),
+      gas_price: gasPrice.toString(),
+      cost_native: ethers.formatEther(costWei),
+      cost_wei: costWei.toString(),
+    });
+  } catch (err) {
+    console.error('GAS estimate error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
