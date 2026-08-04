@@ -494,6 +494,14 @@ app.post('/derive', (req, res) => {
     addressOrderMap.set(addr, order_id);
 
     if (rpc_url && token_address) {
+      const oldInfo = addressNetworkMap.get(addr);
+      if (oldInfo && (oldInfo.rpc_url !== rpc_url || oldInfo.token_address.toLowerCase() !== token_address.toLowerCase())) {
+        console.log(`[monitor] derive order=${order_id} switching net from ${resolveNetLabel(oldInfo.rpc_url, oldInfo.token_address)} to ${resolveNetLabel(rpc_url, token_address)} addr=${addr}`);
+        addressNetworkMap.delete(addr);
+        deletePending(addr);
+        cancelExpirationTimer(addr);
+        cleanupEmptySubscriptions();
+      }
       console.log(`[monitor] derive order=${order_id} net=${resolveNetLabel(rpc_url, token_address)} rpc=${rpc_url} token=${token_address} addr=${addr}`);
       const expires_at = Date.now() + (parseInt(expiration_minutes) || 30) * 60 * 1000;
       const info = {
