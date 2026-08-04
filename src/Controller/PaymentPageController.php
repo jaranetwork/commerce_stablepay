@@ -86,7 +86,18 @@ class PaymentPageController extends ControllerBase {
         );
       }
       else {
-        \Drupal::logger('commerce_stablepay')->warning('Rate zero or empty for @cur, skipping conversion', ['@cur' => $currency]);
+        \Drupal::logger('commerce_stablepay')->error('Cannot convert @amt @cur to USD for order @id; refusing to show payment form', [
+          '@amt' => $amount->getNumber(),
+          '@cur' => $currency,
+          '@id' => $commerce_order->id(),
+        ]);
+        $message = $this->t('No se pudo obtener la cotización USD en este momento. Por favor, reintente en unos instantes.');
+        $this->messenger()->addError($message);
+        return [
+          '#type' => 'markup',
+          '#markup' => '<p style="text-align:center; padding: 2rem;">' . $message . '</p>',
+          '#cache' => ['max-age' => 0],
+        ];
       }
     }
     $address = NULL;
