@@ -682,6 +682,80 @@ async function fetchConfig() {
   }
 }
 
+async function fetchPending() {
+  try {
+    const pending = await new Promise((resolve, reject) => {
+      const opts = {
+        hostname: _baseUrl.hostname,
+        port: drupalPort,
+        path: '/stablepay/payment/pending',
+        method: 'GET',
+        rejectUnauthorized: false,
+        headers: {
+          'Host': DRUPAL_HOST,
+          ...(WEBHOOK_SECRET ? { 'X-Webhook-Secret': WEBHOOK_SECRET } : {}),
+        },
+      };
+      const req = drupalClient.request(opts, (res) => {
+        let body = '';
+        res.on('data', c => body += c);
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            try { resolve(JSON.parse(body)); }
+            catch (e) { reject(e); }
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${body.slice(0, 200)}`));
+          }
+        });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    return pending;
+  } catch (err) {
+    console.error('Failed to fetch pending orders from Drupal:', err.message);
+    return null;
+  }
+}
+
+function reconcilePending(pending) {
+  if (!Array.isArray(pending) || pending.length === 0) {
+    console.log(`Reconciled pending orders from Drupal: 0 (${Array.isArray(pending) ? 'none pending' : 'unreachable'})`);
+    return;
+  }
+  let added = 0;
+  let skipped = 0;
+  for (const item of pending) {
+    const order_id = parseInt(item.order_id);
+    if (isNaN(order_id)) { skipped++; continue; }
+    const child = deriveWallet(order_id);
+    const addr = child.address.toLowerCase();
+    if (addressNetworkMap.has(addr)) { skipped++; continue; }
+    const { rpc_url, token_address } = item;
+    if (!rpc_url || !token_address) { skipped++; continue; }
+    const expiration_minutes = parseInt(item.expiration_minutes) || 30;
+    const expires_at = item.expires_at ? new Date(item.expires_at).getTime() : Date.now() + expiration_minutes * 60 * 1000;
+    const info = {
+      order_id,
+      rpc_url,
+      token_address,
+      token_symbol: item.token_symbol || 'USDT',
+      expected_amount: item.expected_amount || '0',
+      expires_at,
+    };
+    addressOrderMap.set(addr, order_id);
+    addressNetworkMap.set(addr, info);
+    savePending(addr, info);
+    scheduleExpirationTimer(addr, info);
+    ensureNetworkSubscription(rpc_url, token_address);
+    console.log(`[monitor] restored from Drupal: order=${order_id} net=${resolveNetLabel(rpc_url, token_address)} addr=${addr} expired=${expires_at <= Date.now()}`);
+    added++;
+  }
+  console.log(`Reconciled pending orders from Drupal: ${added} added, ${skipped} skipped`);
+  checkPollFallback();
+}
+
+
 async function start() {
   await initDb();
 
@@ -706,6 +780,13 @@ async function start() {
     }
 
     checkPollFallback();
+  }
+
+  const pending = await fetchPending();
+  if (Array.isArray(pending)) {
+    reconcilePending(pending);
+  } else {
+    console.log('Skipped pending reconciliation (Drupal unreachable)');
   }
 
   app.listen(PORT, () => {

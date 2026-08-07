@@ -54,3 +54,10 @@ commerce_stablepay.gas_estimate:
     _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::gasEstimate'
   requirements:
     _access: 'TRUE'
+
+commerce_stablepay.pending:
+  path: '/stablepay/payment/pending'
+  defaults:
+    _controller: '\Drupal\commerce_stablepay\Controller\PaymentPageController::pendingOrders'
+  requirements:
+    _access: 'TRUE'

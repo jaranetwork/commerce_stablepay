@@ -313,6 +313,7 @@ sequenceDiagram
 | `derive` | `/stablepay/payment/derive-address/{order}` | `PaymentPageController::deriveAddress` | `access checkout` | Registra monitoreo de red+token en sidecar |
 | `gas_price` | `/stablepay/payment/gas-price` | `PaymentPageController::gasPrice` | público (`TRUE`) | Precio USD del token nativo por red (CoinGecko, cache 5min por `coin`) para el fee estimado |
 | `gas_estimate` | `/stablepay/payment/gas-estimate` | `PaymentPageController::gasEstimate` | público (`TRUE`) | Proxy: JS → Drupal → sidecar `/gas-estimate` |
+| `pending` | `/stablepay/payment/pending` | `PaymentPageController::pendingOrders` | público (`TRUE`) + `X-Webhook-Secret` | Sidecar recupera órdenes pendientes en el boot (filtro: draft/checkout con `stablepay_data`; expiradas solo si `cancel_on_expire` y dentro de 2× `expiration_minutes`) |
 
 ### Endpoints Sidecar (Express, puerto 3001)
 

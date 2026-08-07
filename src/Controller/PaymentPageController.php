@@ -725,4 +725,52 @@ class PaymentPageController extends ControllerBase {
     ]);
   }
 
+  public function pendingOrders() {
+    $expected_secret = getenv('STABLEPAY_WEBHOOK_SECRET');
+    if (!$expected_secret) {
+      \Drupal::logger('commerce_stablepay')->warning('/pending requires STABLEPAY_WEBHOOK_SECRET env');
+      return new JsonResponse(['error' => 'not configured'], 503);
+    }
+    if (\Drupal::request()->headers->get('X-Webhook-Secret') !== $expected_secret) {
+      \Drupal::logger('commerce_stablepay')->warning('Rejected /pending with invalid webhook secret');
+      return new JsonResponse(['error' => 'unauthorized'], 401);
+    }
+
+    $storage = $this->entityTypeManager()->getStorage('commerce_order');
+    $ids = $storage->getQuery()
+      ->condition('state', ['draft', 'checkout'], 'IN')
+      ->accessCheck(FALSE)
+      ->execute();
+
+    $now = time();
+    $pending = [];
+    foreach ($storage->loadMultiple($ids) as $order) {
+      $sd = $order->getData('stablepay');
+      if (empty($sd) || empty($sd['rpc_url']) || empty($sd['token_address'])) {
+        continue;
+      }
+      $expires_at = strtotime($sd['expires_at'] ?? '') ?: 0;
+      $plugin = $this->loadGatewayPlugin($order);
+      $cancel_on_expire = $plugin && !empty($plugin->getConfiguration()['cancel_on_expire']);
+      $expiration_minutes = (int) ($sd['expiration_minutes'] ?? ($plugin ? $plugin->getExpirationMinutes() : 30));
+      $grace = max($expiration_minutes, 30) * 2 * 60;
+
+      if ($expires_at <= $now && (!$cancel_on_expire || $expires_at + $grace <= $now)) {
+        continue;
+      }
+
+      $pending[] = [
+        'order_id' => (int) $order->id(),
+        'rpc_url' => $sd['rpc_url'],
+        'token_address' => $sd['token_address'],
+        'token_symbol' => $sd['token_symbol'] ?? 'USDT',
+        'expected_amount' => $sd['expected_amount'] ?? '0',
+        'expires_at' => $sd['expires_at'] ?? '',
+        'expiration_minutes' => $expiration_minutes,
+      ];
+    }
+
+    return new JsonResponse($pending);
+  }
+
 }
