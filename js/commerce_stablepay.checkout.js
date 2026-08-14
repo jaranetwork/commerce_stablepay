@@ -372,6 +372,8 @@
           });
         }
 
+        var lastQrValue = null;
+
         function generateQR() {
           var qrContainer = document.getElementById('stablepay-qr');
           if (!qrContainer || !state.payment) return;
@@ -380,11 +382,23 @@
             ? 'ethereum:' + state.payment.tokenAddress + '@' + state.payment.chainId + '/transfer?address=' + state.payment.receivingAddress + '&uint256=' + (parseInt(state.payment.amount * Math.pow(10, state.payment.decimals || 6)) || 0)
             : state.payment.receivingAddress;
 
-          qrContainer.innerHTML = '';
+          if (lastQrValue === value && qrContainer.firstChild) {
+            return;
+          }
+          lastQrValue = value;
 
-          // Simple QR fallback — use Google Charts API
+          if (typeof qrcode !== 'function') {
+            qrContainer.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-secondary, #666);">' + escapeHtml(value) + '</span>';
+            return;
+          }
+
+          var qr = qrcode(0, 'M');
+          qr.addData(value);
+          qr.make();
+
+          qrContainer.innerHTML = '';
           var img = document.createElement('img');
-          img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(value);
+          img.src = qr.createDataURL(5, 4);
           img.alt = 'QR Code';
           img.style.width = '180px';
           img.style.height = '180px';

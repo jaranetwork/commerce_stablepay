@@ -1,6 +1,7 @@
 checkout:
   version: VERSION
   js:
+    js/qrcode-generator.js: {}
     js/commerce_stablepay.checkout.js: {}
   dependencies:
     - core/jquery
