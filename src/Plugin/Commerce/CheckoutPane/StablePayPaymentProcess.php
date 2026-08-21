@@ -4,10 +4,11 @@ namespace Drupal\commerce_stablepay\Plugin\Commerce\CheckoutPane;
 
 use Drupal\commerce_checkout\Attribute\CommerceCheckoutPane;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
+use Drupal\commerce\Response\NeedsRedirectException;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\ManualPaymentGatewayInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\commerce\Response\NeedsRedirectException;
 
 #[CommerceCheckoutPane(
   id: "stablepay_payment_process",
@@ -33,16 +34,31 @@ class StablePayPaymentProcess extends CheckoutPaneBase {
 
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
     $selected_gateway = $this->getSelectedGatewayPluginId($form_state);
-    if ($selected_gateway !== 'stablepay_offsite') {
-      return [];
+    if ($selected_gateway === 'stablepay_offsite') {
+      $pane_form['message'] = [
+        '#type' => 'markup',
+        '#markup' => '<p>' . $this->t('Click "Pay and complete purchase" to proceed to the StablePay payment page.') . '</p>',
+      ];
+      return $pane_form;
     }
 
-    $pane_form['message'] = [
-      '#type' => 'markup',
-      '#markup' => '<p>' . $this->t('Click "Pay and complete purchase" to proceed to the StablePay payment page.') . '</p>',
-    ];
+    $gateway = $this->order->get('payment_gateway')->entity;
+    if ($gateway) {
+      $plugin = $gateway->getPlugin();
+      if ($plugin instanceof ManualPaymentGatewayInterface) {
+        $payment = $this->entityTypeManager->getStorage('commerce_payment')->create([
+          'state' => 'new',
+          'amount' => $this->order->getBalance(),
+          'payment_gateway' => $gateway->id(),
+          'order_id' => $this->order->id(),
+        ]);
+        $plugin->createPayment($payment);
+        $next = $this->checkoutFlow->getNextStepId($this->getStepId());
+        $this->checkoutFlow->redirectToStep($next);
+      }
+    }
 
-    return $pane_form;
+    return [];
   }
 
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
